@@ -15,6 +15,15 @@ from src.pipeline import IngestionPipeline, PipelineResult
 from src.schemas import ShiftReport
 from src.gmail_runner import run_gmail
 
+try:
+    import readline
+    # Habilitar edición de línea de GNU readline (Backspace, Supr, Flechas)
+    readline.parse_and_bind(r'"\e[3~": delete-char')
+    readline.parse_and_bind(r'"\C-h": backward-delete-char')
+    readline.parse_and_bind(r'"\C-?": backward-delete-char')
+except ImportError:
+    pass
+
 console = Console()
 
 
@@ -88,62 +97,65 @@ def run_batch(force_mock: bool = False):
 
 def run_interactive(force_mock: bool = False):
     pipeline = IngestionPipeline(force_mock=force_mock)
-    while True:
-        console.print("\n[bold cyan]─── MENÚ INTERACTIVO ───[/]")
-        console.print("1. Procesar archivo de muestra")
-        console.print("2. Pegar texto de correo/chat en vivo")
-        console.print("3. Procesar todos los correos en lote (Batch)")
-        console.print("4. Gmail: Consultar correos no leídos")
-        console.print("5. Gmail: Consultar y procesar correos (marcar como leídos)")
-        console.print("6. Salir")
-        
-        choice = Prompt.ask("\nSelecciona una opción", choices=["1", "2", "3", "4", "5", "6"], default="1")
-        
-        if choice == "1":
-            files = sorted(list(SAMPLE_MAILS_DIR.glob("*.txt")))
-            if not files:
-                console.print("[yellow]No se encontraron archivos en data/sample_mails/[/]")
-                continue
-            console.print("\nArchivos disponibles:")
-            for idx, f in enumerate(files, 1):
-                console.print(f"  {idx}. {f.name}")
-            f_choice = Prompt.ask("Elige el número de archivo", choices=[str(i) for i in range(1, len(files) + 1)])
-            selected_file = files[int(f_choice) - 1]
-            result = pipeline.process_file(selected_file)
-            display_report_results(result)
-        elif choice == "2":
-            console.print("\n[bold yellow]Pega el texto del correo (Escribe 'FIN' en una línea separada al terminar):[/]")
-            lines = []
-            while True:
-                line = input()
-                if line.strip() == "FIN":
-                    break
-                lines.append(line)
-            raw_text = "\n".join(lines).strip()
-            if raw_text:
-                result = pipeline.process_text(raw_text, source_file="Entrada Manual")
+    try:
+        while True:
+            console.print("\n[bold cyan]─── MENÚ INTERACTIVO ───[/]")
+            console.print("1. Procesar archivo de muestra")
+            console.print("2. Pegar texto de correo/chat en vivo")
+            console.print("3. Procesar todos los correos en lote (Batch)")
+            console.print("4. Gmail: Consultar correos no leídos")
+            console.print("5. Gmail: Consultar y procesar correos (marcar como leídos)")
+            console.print("6. Salir")
+            
+            choice = Prompt.ask("\nSelecciona una opción", choices=["1", "2", "3", "4", "5", "6"], default="1")
+            
+            if choice == "1":
+                files = sorted(list(SAMPLE_MAILS_DIR.glob("*.txt")))
+                if not files:
+                    console.print("[yellow]No se encontraron archivos en data/sample_mails/[/]")
+                    continue
+                console.print("\nArchivos disponibles:")
+                for idx, f in enumerate(files, 1):
+                    console.print(f"  {idx}. {f.name}")
+                f_choice = Prompt.ask("Elige el número de archivo", choices=[str(i) for i in range(1, len(files) + 1)])
+                selected_file = files[int(f_choice) - 1]
+                result = pipeline.process_file(selected_file)
                 display_report_results(result)
-            else:
-                console.print("[yellow]Texto vacío cancelado.[/]")
-        elif choice == "3":
-            run_batch(force_mock=force_mock)
-        elif choice == "4":
-            run_gmail(
-                process=False,
-                force_mock=force_mock,
-                console=console,
-                result_callback=display_report_results,
-            )
-        elif choice == "5":
-            run_gmail(
-                process=True,
-                force_mock=force_mock,
-                console=console,
-                result_callback=display_report_results,
-            )
-        elif choice == "6":
-            console.print("[bold green]¡Hasta pronto![/]")
-            break
+            elif choice == "2":
+                console.print("\n[bold yellow]Pega el texto del correo (Escribe 'FIN' en una línea separada al terminar):[/]")
+                lines = []
+                while True:
+                    line = input()
+                    if line.strip() == "FIN":
+                        break
+                    lines.append(line)
+                raw_text = "\n".join(lines).strip()
+                if raw_text:
+                    result = pipeline.process_text(raw_text, source_file="Entrada Manual")
+                    display_report_results(result)
+                else:
+                    console.print("[yellow]Texto vacío cancelado.[/]")
+            elif choice == "3":
+                run_batch(force_mock=force_mock)
+            elif choice == "4":
+                run_gmail(
+                    process=False,
+                    force_mock=force_mock,
+                    console=console,
+                    result_callback=display_report_results,
+                )
+            elif choice == "5":
+                run_gmail(
+                    process=True,
+                    force_mock=force_mock,
+                    console=console,
+                    result_callback=display_report_results,
+                )
+            elif choice == "6":
+                console.print("[bold green]¡Hasta pronto![/]")
+                break
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[bold yellow]Operación cancelada. ¡Hasta pronto![/]")
 
 
 def main():
@@ -178,4 +190,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[bold yellow]Programa interrumpido.[/]")
