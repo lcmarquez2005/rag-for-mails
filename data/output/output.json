@@ -1,15 +1,55 @@
 [
   {
     "machine_id": "M102",
-    "downtime_minutes": 45,
-    "approved_parts": 1200,
-    "rejected_parts": 15,
+    "downtime_minutes": 0,
+    "approved_parts": 1600,
+    "rejected_parts": 2,
     "reasons": [
-      "cambio de molde",
-      "defectos estéticos",
-      "revisiones preventivas completadas"
+      "rayones"
     ],
-    "shift_leader": "Juan Pérez"
+    "shift_leader": "Luis Hernández"
+  },
+  {
+    "machine_id": "M104",
+    "downtime_minutes": 40,
+    "approved_parts": 900,
+    "rejected_parts": 18,
+    "reasons": [
+      "falla eléctrica",
+      "fuera de tolerancia dimensional"
+    ],
+    "shift_leader": "Luis Hernández"
+  },
+  {
+    "machine_id": "M103",
+    "downtime_minutes": 20,
+    "approved_parts": 1350,
+    "rejected_parts": 8,
+    "reasons": [
+      "cambio de molde rápido",
+      "mal color"
+    ],
+    "shift_leader": "Roberto Sánchez"
+  },
+  {
+    "machine_id": "M107",
+    "downtime_minutes": 15,
+    "approved_parts": 1890,
+    "rejected_parts": 3,
+    "reasons": [
+      "limpieza de boquilla"
+    ],
+    "shift_leader": "Daniela Morales"
+  },
+  {
+    "machine_id": "M110",
+    "downtime_minutes": 13,
+    "approved_parts": 1190,
+    "rejected_parts": 3,
+    "reasons": [
+      "limpieza de boquilla"
+    ],
+    "shift_leader": "Daniela Morales"
   },
   {
     "machine_id": "M103",
@@ -23,42 +63,5 @@
       "marcas de inyección"
     ],
     "shift_leader": "Francisco Ruiz"
-  },
-  {
-    "machine_id": "M102",
-    "downtime_minutes": 45,
-    "approved_parts": 1200,
-    "rejected_parts": 15,
-    "reasons": [
-      "cambio de molde",
-      "defectos estéticos",
-      "revisiones preventivas completadas"
-    ],
-    "shift_leader": "Juan Pérez"
-  },
-  {
-    "machine_id": "M103",
-    "downtime_minutes": 50,
-    "approved_parts": 1120,
-    "rejected_parts": 30,
-    "reasons": [
-      "ajuste de presión hidráulica",
-      "desalineación de guías",
-      "porosidad interna",
-      "marcas de inyección"
-    ],
-    "shift_leader": "Francisco Ruiz"
-  },
-  {
-    "machine_id": "M108",
-    "downtime_minutes": 55,
-    "approved_parts": 980,
-    "rejected_parts": 25,
-    "reasons": [
-      "sobrecalentamiento del motor",
-      "falta de lubricación",
-      "vibración extraña"
-    ],
-    "shift_leader": "Ana Torres"
   }
 ]

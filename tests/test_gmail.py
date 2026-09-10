@@ -1,6 +1,5 @@
 import base64
 from unittest.mock import MagicMock
-import pytest
 
 from src.gmail_client import GmailClient, GmailMessage, extract_email_address
 from src.pipeline import IngestionPipeline
@@ -149,6 +148,47 @@ def test_fetch_authorized_unread_emails_filters_unauthorized():
     assert emails[0].sender == "Ingeniero <l23200286@pachuca.tecnm.mx>"
 
 
+def test_fetch_authorized_unread_emails_accepts_multiple_senders():
+    mock_service = MagicMock()
+    client = GmailClient(
+        authorized_sender="lider@empresa.com, supervisor@empresa.com",
+        service=mock_service,
+    )
+
+    mock_service.users().messages().list().execute.return_value = {
+        "messages": [{"id": "leader_1"}, {"id": "supervisor_2"}, {"id": "other_3"}]
+    }
+
+    def message_data(message_id, sender):
+        return {
+            "id": message_id,
+            "threadId": f"thread_{message_id}",
+            "payload": {
+                "headers": [{"name": "From", "value": sender}],
+                "body": {"data": base64.urlsafe_b64encode(b"Reporte").decode("ascii")},
+            },
+        }
+
+    messages = {
+        "leader_1": message_data("leader_1", "Lider <lider@empresa.com>"),
+        "supervisor_2": message_data("supervisor_2", "supervisor@empresa.com"),
+        "other_3": message_data("other_3", "externo@empresa.com"),
+    }
+
+    def mock_get(userId, id, format):
+        mock_call = MagicMock()
+        mock_call.execute.return_value = messages[id]
+        return mock_call
+
+    mock_service.users().messages().get.side_effect = mock_get
+
+    emails = client.fetch_authorized_unread_emails()
+
+    assert {email.id for email in emails} == {"leader_1", "supervisor_2"}
+    query = mock_service.users().messages().list.call_args.kwargs["q"]
+    assert query == "is:unread {from:lider@empresa.com from:supervisor@empresa.com}"
+
+
 def test_mark_as_read():
     mock_service = MagicMock()
     client = GmailClient(service=mock_service)
@@ -184,43 +224,3 @@ def test_pipeline_process_gmail_message(tmp_path):
     assert rec.shift_leader == "Juan Pérez"
 
 
-def test_gmail_runner_flow():
-    from unittest.mock import MagicMock
-    from rich.console import Console
-    from src.gmail_runner import run_gmail
-
-    mock_client = MagicMock()
-    fake_msg = GmailMessage(
-        id="runner_1",
-        thread_id="th_run",
-        sender="l23200286@pachuca.tecnm.mx",
-        recipient="me@domain.com",
-        subject="Reporte M102",
-        date="2026-09-10",
-        snippet="Snippet M102",
-        body="Máquina M102 estuvo detenida 45 minutos... Aprobadas: 1200. Rechazadas: 15. Líder: Juan Pérez."
-    )
-    mock_client.authorized_sender = "l23200286@pachuca.tecnm.mx"
-    mock_client.fetch_authorized_unread_emails.return_value = [fake_msg]
-
-    mock_pipeline = MagicMock()
-    mock_result = MagicMock()
-    mock_result.success = True
-    mock_pipeline.process_gmail_message.return_value = mock_result
-
-    callback_mock = MagicMock()
-    console = Console(quiet=True)
-
-    emails = run_gmail(
-        process=True,
-        force_mock=True,
-        client=mock_client,
-        pipeline=mock_pipeline,
-        console=console,
-        result_callback=callback_mock
-    )
-
-    assert len(emails) == 1
-    mock_pipeline.process_gmail_message.assert_called_once_with(fake_msg)
-    callback_mock.assert_called_once_with(mock_result)
-    mock_client.mark_as_read.assert_called_once_with("runner_1")

@@ -1,8 +1,7 @@
 import json
-import pytest
-from pathlib import Path
-from src.schemas import MachineRecord, ExtractionOutput, ShiftReport
-from src.extractor import sanitize_json_response, MockShiftExtractor
+from src.schemas import MachineRecord, ShiftReport
+from src.services.ollama_service import sanitize_json_response
+from src.extractor import MockShiftExtractor
 from src.exporters import JsonExporter, ExcelExporter
 from src.pipeline import IngestionPipeline
 
@@ -107,4 +106,101 @@ def test_pipeline_e2e_output_json_and_excel(tmp_path):
     assert "sheetId" not in record
     assert "cells" not in record
     assert "scrap_rate_pct" not in record
+
+
+def test_excel_exporter_idempotency(tmp_path):
+    excel_file = tmp_path / "idempotent_report.xlsx"
+    exporter = ExcelExporter(output_path=excel_file)
+
+    report = ShiftReport(
+        records=[
+            MachineRecord(
+                machine_id="M102",
+                downtime_minutes=45,
+                approved_parts=1200,
+                rejected_parts=15,
+                reasons=["cambio de molde"],
+                shift_leader="Juan Pérez",
+                shift="Turno 1"
+            )
+        ],
+        raw_source="test raw",
+        source_file="gmail_msg_abc123",
+        email_id="msg_abc123",
+        email_date="2026-09-10 10:00:00"
+    )
+
+    # Primera exportación
+    exporter.export_report(report)
+    import openpyxl
+    wb = openpyxl.load_workbook(excel_file)
+    ws = wb.active
+    assert ws.max_row == 2
+    assert ws.max_column == 9
+    assert ws.cell(row=1, column=2).value == "Fecha del Correo"
+    assert ws.cell(row=1, column=3).value == "Turno"
+    assert ws.cell(row=1, column=4).value == "Máquina ID"
+    assert ws.cell(row=2, column=1).value == "msg_abc123"
+    assert ws.cell(row=2, column=2).value == "2026-09-10 10:00:00"
+    assert ws.cell(row=2, column=3).value == "Turno 1"
+    assert ws.cell(row=2, column=4).value == "M102"
+
+    # Segunda exportación idéntica (debe omitir duplicado)
+    exporter.export_report(report)
+    wb2 = openpyxl.load_workbook(excel_file)
+    ws2 = wb2.active
+    assert ws2.max_row == 2  # No se añade fila duplicada
+    assert ws2.max_column == 9
+
+
+def test_excel_exporter_removes_fecha_proceso_column(tmp_path):
+    excel_file = tmp_path / "old_with_fecha_proceso.xlsx"
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append([
+        "ID de Correo / Origen",
+        "Fecha del Correo",
+        "Fecha/Hora Proceso",
+        "Turno",
+        "Máquina ID",
+        "Líder de Turno",
+        "Paro (Minutos)",
+        "Piezas Aprobadas",
+        "Piezas Rechazadas",
+        "Motivos / Observaciones"
+    ])
+    ws.append(["msg_old", "2026-09-10 10:00:00", "2026-09-10 10:05:00", "Turno 1", "M102", "Juan", 0, 100, 0, "OK"])
+    wb.save(excel_file)
+
+    exporter = ExcelExporter(output_path=excel_file)
+    wb_migrated, ws_migrated = exporter._get_or_create_workbook()
+
+    assert ws_migrated.max_column == 9
+    headers = [cell.value for cell in ws_migrated[1]]
+    assert "Fecha/Hora Proceso" not in headers
+    assert headers[1] == "Fecha del Correo"
+    assert headers[2] == "Turno"
+    assert headers[3] == "Máquina ID"
+
+    row_vals = [cell.value for cell in ws_migrated[2]]
+    assert row_vals == ["msg_old", "2026-09-10 10:00:00", "Turno 1", "M102", "Juan", 0, 100, 0, "OK"]
+
+
+def test_processed_tracker(tmp_path):
+    from src.exporters import ProcessedTracker
+    tracker_file = tmp_path / "tracker.json"
+    tracker = ProcessedTracker(path=tracker_file)
+
+    assert tracker.is_processed("email_123") is False
+    tracker.record(email_id="email_123", email_date="2026-09-10", sender="l23@pachuca.tecnm.mx", records_count=2)
+    assert tracker.is_processed("email_123") is True
+    # Re-registro no duplica
+    tracker.record(email_id="email_123")
+    with open(tracker_file, "r") as f:
+        data = json.load(f)
+    assert len(data) == 1
+
+
 

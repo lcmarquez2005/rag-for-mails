@@ -101,7 +101,18 @@ class ShiftReport(BaseModel):
     records: List[MachineRecord]
     raw_source: str
     source_file: Optional[str] = None
+    email_id: Optional[str] = None
+    email_date: Optional[str] = None
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProcessedEmailLog(BaseModel):
+    email_id: str
+    email_date: Optional[str] = None
+    sender: Optional[str] = None
+    subject: Optional[str] = None
+    processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    records_count: int = 0
 
 
 class QuarantineRecord(BaseModel):
@@ -109,4 +120,5 @@ class QuarantineRecord(BaseModel):
     source_file: Optional[str] = None
     error_message: str
     failed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 

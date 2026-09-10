@@ -75,3 +75,9 @@ Buscar mensajes
 
 ## En Google Cloud Console:
 Se genero un proyecto y se habilito la Gmail api y se descargo las credenciales del proeycto
+
+---
+
+## ⚡ Evolución a Webhook y FastAPI (Event-Driven)
+Para la integración mediante Webhook en tiempo real con Google Cloud Pub/Sub y el servicio web FastAPI, consulta la documentación completa en:
+👉 [**docs/INTEGRACION_WEBHOOK_GMAIL.md**](INTEGRACION_WEBHOOK_GMAIL.md)

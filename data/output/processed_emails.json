@@ -1,0 +1,42 @@
+[
+  {
+    "email_id": "1a08a263d99ac53d",
+    "email_date": "2026-09-10 07:15:35",
+    "sender": null,
+    "subject": null,
+    "processed_at": "2026-09-10T21:02:08.573526Z",
+    "records_count": 1
+  },
+  {
+    "email_id": "1a08a2de1aeea353",
+    "email_date": "2026-09-10 07:17:46",
+    "sender": null,
+    "subject": null,
+    "processed_at": "2026-09-10T21:02:08.574438Z",
+    "records_count": 1
+  },
+  {
+    "email_id": "1a08c569f38a04a5",
+    "email_date": "2026-09-10 17:24:05",
+    "sender": null,
+    "subject": null,
+    "processed_at": "2026-09-10T21:02:08.574883Z",
+    "records_count": 1
+  },
+  {
+    "email_id": "1a08ca13c36eefef",
+    "email_date": "2026-09-10 18:42:57",
+    "sender": null,
+    "subject": null,
+    "processed_at": "2026-09-10T21:02:08.575570Z",
+    "records_count": 1
+  },
+  {
+    "email_id": "1a08d48dd9af1e8d",
+    "email_date": "Thu, 10 Sep 2026 15:45:44 -0600",
+    "sender": "MARQUEZ STROCIAK LUIS CARLOS INGENIERIA EN SISTEMAS COMPUTACIONALES <l23200286@pachuca.tecnm.mx>",
+    "subject": "Actualización de moldeo (Turno 3)",
+    "processed_at": "2026-09-10T21:46:11.870462Z",
+    "records_count": 1
+  }
+]

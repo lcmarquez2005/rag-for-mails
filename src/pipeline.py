@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Any
 from datetime import datetime, timezone
 
 from src.config import QUARANTINE_PATH, SAMPLE_MAILS_DIR, OUTPUT_JSON_PATH, EXCEL_OUTPUT_PATH
@@ -41,7 +41,13 @@ class IngestionPipeline:
         self.json_exporter = JsonExporter()
         self.excel_exporter = ExcelExporter()
 
-    def process_text(self, text: str, source_file: Optional[str] = None) -> PipelineResult:
+    def process_text(
+        self,
+        text: str,
+        source_file: Optional[str] = None,
+        email_id: Optional[str] = None,
+        email_date: Optional[str] = None
+    ) -> PipelineResult:
         """Procesa una cadena de texto sin estructurar."""
         if not text or not text.strip():
             return PipelineResult(
@@ -53,11 +59,13 @@ class IngestionPipeline:
         try:
             # 1. Extracción y Validación Pydantic
             report = self.extractor.extract(raw_text=text, source_file=source_file)
+            report.email_id = email_id or (source_file if source_file and source_file.startswith("gmail_") else None)
+            report.email_date = email_date
 
             # 2. Exportación a output.json (estructura original exacta)
             json_result = self.json_exporter.export_report(report)
 
-            # 3. Exportación a Excel
+            # 3. Exportación a Excel con deduplicación
             excel_file = self.excel_exporter.export_report(report)
 
             return PipelineResult(
@@ -77,7 +85,7 @@ class IngestionPipeline:
                 source_file=source_file
             )
 
-    def process_file(self, file_path: Union_Path) -> PipelineResult:
+    def process_file(self, file_path: Path | str) -> PipelineResult:
         """Lee un archivo de correo/registro y ejecuta el pipeline."""
         p = Path(file_path)
         if not p.exists():
@@ -96,7 +104,7 @@ class IngestionPipeline:
 
         return self.process_text(text=content, source_file=p.name)
 
-    def process_directory(self, dir_path: Union_Path = SAMPLE_MAILS_DIR) -> List[PipelineResult]:
+    def process_directory(self, dir_path: Path | str = SAMPLE_MAILS_DIR) -> List[PipelineResult]:
         """Procesa en lote todos los archivos de texto en un directorio."""
         p = Path(dir_path)
         if not p.exists():
@@ -111,11 +119,19 @@ class IngestionPipeline:
     def process_gmail_message(self, message: Any) -> PipelineResult:
         """
         Procesa un correo obtenido de Gmail (GmailMessage).
-        Entrega el texto al pipeline de extracción y exportación.
+        Entrega el texto al pipeline de extracción y exportación con trazabilidad.
         """
         text = message.to_ingestion_text() if hasattr(message, "to_ingestion_text") else str(message)
-        source_id = f"gmail_{getattr(message, 'id', 'unknown')}"
-        return self.process_text(text=text, source_file=source_id)
+        email_id = getattr(message, 'id', 'unknown')
+        source_id = f"gmail_{email_id}"
+        email_date = getattr(message, 'date', None)
+        return self.process_text(
+            text=text,
+            source_file=source_id,
+            email_id=email_id,
+            email_date=email_date
+        )
+
 
     def _send_to_quarantine(self, raw_text: str, source_file: Optional[str], error_message: str):
         """Registra entradas fallidas en el archivo de cuarentena."""
@@ -138,6 +154,3 @@ class IngestionPipeline:
 
         with open(QUARANTINE_PATH, "w", encoding="utf-8") as f:
             json.dump(existing, f, indent=2, ensure_ascii=False)
-
-
-Union_Path = Path | str

@@ -1,5 +1,4 @@
 import base64
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -66,9 +65,16 @@ class GmailClient:
     ):
         self.credentials_path = Path(credentials_path)
         self.token_path = Path(token_path)
-        self.authorized_sender = authorized_sender.lower().strip()
+        self.authorized_senders = self._parse_senders(authorized_sender)
+        self.authorized_sender = ",".join(self.authorized_senders)
         self.scopes = scopes or GMAIL_SCOPES
         self._service: Optional[Resource] = service
+
+    @staticmethod
+    def _parse_senders(senders: str) -> List[str]:
+        """Convierte una configuración de remitentes en direcciones normalizadas."""
+        parsed_senders = [sender.strip().lower() for sender in re.split(r"[,;]", senders)]
+        return [sender for sender in parsed_senders if sender]
 
     def authenticate(self, run_local_server: bool = True) -> Resource:
         """
@@ -121,11 +127,15 @@ class GmailClient:
         """
         Consulta y recupera exclusivamente los correos no leídos que cumplan con
         el remitente autorizado.
-        Filtro en Gmail: `is:unread from:<remitente_autorizado>`
+        Filtro en Gmail: `is:unread {from:<remitente_1> from:<remitente_2>}`
         Validación estricta adicional en código para descartar cualquier otro remitente.
         """
-        sender = (sender_override or self.authorized_sender).lower().strip()
-        query = f"is:unread from:{sender}"
+        senders = self._parse_senders(sender_override) if sender_override else self.authorized_senders
+        if not senders:
+            return []
+
+        sender_query = " ".join(f"from:{sender}" for sender in senders)
+        query = f"is:unread {{{sender_query}}}"
 
         service = self.service
         response = (
@@ -140,6 +150,7 @@ class GmailClient:
             return []
 
         authorized_emails: List[GmailMessage] = []
+        authorized_senders = set(senders)
 
         for msg_meta in messages_meta:
             msg_id = msg_meta["id"]
@@ -156,7 +167,7 @@ class GmailClient:
 
             # Doble validación estricta del remitente
             clean_sender = extract_email_address(email_obj.sender)
-            if clean_sender == sender:
+            if clean_sender in authorized_senders:
                 authorized_emails.append(email_obj)
 
         return authorized_emails
@@ -169,6 +180,22 @@ class GmailClient:
             id=message_id,
             body={"removeLabelIds": ["UNREAD"]},
         ).execute()
+
+    def watch(self, topic_name: str, label_ids: Optional[List[str]] = None) -> dict:
+        """
+        Registra la suscripción push de Gmail hacia el Topic de Cloud Pub/Sub.
+        topic_name debe tener el formato: projects/<PROJECT_ID>/topics/<TOPIC_NAME>
+        """
+        body = {
+            "topicName": topic_name,
+            "labelIds": label_ids or ["INBOX"]
+        }
+        return self.service.users().watch(userId="me", body=body).execute()
+
+    def stop_watch(self) -> dict:
+        """Detiene las notificaciones push de Gmail."""
+        return self.service.users().stop(userId="me").execute()
+
 
     def _parse_message(self, msg_data: dict) -> Optional[GmailMessage]:
         """Extrae cabeceras y decodifica el cuerpo del mensaje."""

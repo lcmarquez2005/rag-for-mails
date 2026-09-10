@@ -1,3 +1,7 @@
+"""
+Configuración central del proyecto RAG for Mails.
+"""
+
 import os
 from pathlib import Path
 
@@ -8,8 +12,8 @@ SAMPLE_MAILS_DIR = DATA_DIR / "sample_mails"
 OUTPUT_DIR = DATA_DIR / "output"
 EXCEL_OUTPUT_PATH = OUTPUT_DIR / "reporte_moldeo.xlsx"
 OUTPUT_JSON_PATH = OUTPUT_DIR / "output.json"
-JSON_OUTPUT_PATH = OUTPUT_JSON_PATH
 QUARANTINE_PATH = OUTPUT_DIR / "quarantine.json"
+PROCESSED_EMAILS_PATH = OUTPUT_DIR / "processed_emails.json"
 
 # Crear carpetas si no existen
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -27,3 +31,7 @@ GMAIL_AUTHORIZED_SENDER = os.getenv("GMAIL_AUTHORIZED_SENDER", "l23200286@pachuc
 GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify"
 ]
+
+# Configuración del Servidor FastAPI
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("API_PORT", "8000"))
