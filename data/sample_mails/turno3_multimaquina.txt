@@ -1,0 +1,14 @@
+Resumen Cierre de Turno 3 - Área de Inyección y Moldeo
+Líder de turno: Carlos Mendoza
+
+Máquina M201:
+- Piezas conformes: 1500
+- Piezas no conformes: 10 por rebaba
+- Tiempo fuera de servicio: 15 minutos por purga de boquilla.
+- Motivos: Purga y calibración rápida.
+
+Máquina M202:
+- Piezas conformes: 980
+- Piezas no conformes: 55 por deformación térmica
+- Tiempo detenido: 80 minutos por falla en el sensor de presión hidráulica.
+- Motivos: Falla sensor de presión y cambio de termopar.

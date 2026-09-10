@@ -1,0 +1,3 @@
+Actualización del Turno 1: 
+La máquina M102 estuvo detenida durante 45 minutos debido a un cambio de molde. Total de piezas aprobadas: 1200. Piezas rechazadas: 15 debido a defectos estéticos. El equipo de mantenimiento completó las revisiones preventivas en la M102. 
+Líder de turno: Juan Pérez.

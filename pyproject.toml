@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "rag-for-mails"
+version = "0.1.0"
+description = "Sistema automatizado de extraccion, validacion y sincronizacion de reportes de correo con LangChain, Ollama y Pydantic"
+authors = ["lcmarquez"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.15"
+pydantic = "^2.6.0"
+langchain = "^0.2.0"
+langchain-core = "^0.2.0"
+langchain-ollama = "^0.1.0"
+openpyxl = "^3.1.2"
+rich = "^13.7.0"
+typer = "^0.12.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

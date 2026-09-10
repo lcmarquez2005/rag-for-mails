@@ -1,0 +1,5 @@
+Reporte de Producción - Turno 2 (Moldeo):
+En la máquina M105 tuvimos un problema con la temperatura del cañón. Estuvo parada 30 minutos por ajuste de parámetros.
+Piezas buenas producidas: 850.
+Piezas defectuosas / scrap: 95 unidades por rebabas y quemaduras de material.
+Supervisor a cargo: Maria Rodriguez.

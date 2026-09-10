@@ -1,0 +1,7 @@
+Turno 3 - Notificación de Guardia
+Máquina: M108
+Líder de turno: Roberto Gómez
+Se reporta paro mayor de 120 minutos por cambio de husillo y mantenimiento correctivo mayor.
+Piezas aprobadas: 400.
+Piezas rechazadas: 8 por prueba de arranque inicial.
+Motivos: Mantenimiento correctivo mayor en husillo.
