@@ -16,7 +16,15 @@ class ProcessTextRequest(BaseModel):
     )
     force_mock: bool = Field(
         default=False,
-        description="Forzar el uso del extractor determinista Mock sin llamar a Ollama"
+        description="Forzar el uso del extractor determinista Mock sin llamar al LLM"
+    )
+    llm_provider: Optional[str] = Field(
+        default=None,
+        description="Proveedor de IA opcional ('ollama', 'openai', 'gemini', 'anthropic')"
+    )
+    llm_model: Optional[str] = Field(
+        default=None,
+        description="Modelo de IA específico a utilizar (ej: 'gpt-4o-mini', 'gemini-2.5-flash', 'claude-3-5-sonnet-20240620')"
     )
 
 
@@ -76,9 +84,55 @@ class WebhookResponse(BaseModel):
 class HealthResponse(BaseModel):
     """Estado general del servicio y dependencias."""
     status: str
+    llm_provider: str = Field(default="ollama", description="Proveedor LLM activo ('ollama', 'openai', 'gemini', 'anthropic')")
+    llm_model: str = Field(default="", description="Modelo LLM configurado")
+    llm_available: bool = Field(default=False, description="Disponibilidad del LLM configurado")
     ollama_available: bool
     ollama_model: str
     gmail_credentials_found: bool
     gmail_token_found: bool
     server_excel_path: str
     server_json_path: str
+
+
+class SupportedProviderInfo(BaseModel):
+    """Información de un proveedor de IA soportado."""
+    name: str
+    available: bool
+    requires_api_key: bool
+    has_api_key: bool
+    default_model: str
+    models: List[str]
+
+
+class AIConfigResponse(BaseModel):
+    """Respuesta con la configuración activa y modelos soportados."""
+    active_provider: str
+    active_model: str
+    is_available: bool
+    supported_providers: Dict[str, SupportedProviderInfo]
+
+
+class UpdateAIConfigRequest(BaseModel):
+    """Solicitud para cambiar el proveedor o modelo activo."""
+    provider: str = Field(
+        ...,
+        description="Proveedor de IA ('gemini', 'openai', 'anthropic', 'ollama')"
+    )
+    model: Optional[str] = Field(
+        default=None,
+        description="Modelo específico a activar (ej: 'gemini-1.5-pro', 'gpt-4o', etc.)"
+    )
+    api_key: Optional[str] = Field(
+        default=None,
+        description="API Key opcional para configurar el proveedor en tiempo de ejecución"
+    )
+
+
+class UpdateAIConfigResponse(BaseModel):
+    """Respuesta de confirmación tras cambiar el proveedor o modelo."""
+    success: bool
+    active_provider: str
+    active_model: str
+    is_available: bool
+    message: str

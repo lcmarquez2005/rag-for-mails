@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.schemas import (
@@ -7,6 +7,9 @@ from src.schemas import (
     WebhookPayload,
     WebhookResponse,
     HealthResponse,
+    AIConfigResponse,
+    UpdateAIConfigRequest,
+    UpdateAIConfigResponse,
 )
 from src.services.health_service import check_system_health
 from src.services.report_service import process_text_report
@@ -15,6 +18,7 @@ from src.services.webhook_service import (
     activate_gmail_watch,
     deactivate_gmail_watch,
 )
+from src.services.ai import get_ai_configuration, update_ai_configuration
 
 # ==============================================================================
 # 1. INICIALIZACIÓN DE LA APLICACIÓN FASTAPI
@@ -89,3 +93,44 @@ def register_gmail_watch_endpoint(topic_name: str):
 def stop_gmail_watch_endpoint():
     """Detiene las notificaciones push de Gmail."""
     return deactivate_gmail_watch()
+
+
+# ==============================================================================
+# 3. GESTIÓN DINÁMICA DE MODELOS Y PROVEEDORES DE IA
+# ==============================================================================
+@app.get(
+    "/api/v1/ai/models",
+    response_model=AIConfigResponse,
+    summary="Listar proveedores y modelos de IA soportados",
+    tags=["Modelos IA"]
+)
+def get_ai_models_endpoint():
+    """
+    Retorna el catálogo completo de proveedores de IA soportados (Gemini, OpenAI, Claude, Ollama),
+    los modelos disponibles para cada uno, el estado de disponibilidad y el proveedor activo.
+    """
+    return get_ai_configuration()
+
+
+@app.post(
+    "/api/v1/ai/models",
+    response_model=UpdateAIConfigResponse,
+    summary="Cambiar dinámicamente el proveedor o modelo de IA activo",
+    tags=["Modelos IA"]
+)
+def update_ai_model_endpoint(payload: UpdateAIConfigRequest):
+    """
+    Cambia en tiempo de ejecución el proveedor y modelo de IA utilizado para la extracción de reportes.
+    Permite opcionalmente enviar una API Key en caliente sin reiniciar el servidor.
+    """
+    try:
+        return update_ai_configuration(
+            provider=payload.provider,
+            model=payload.model,
+            api_key=payload.api_key
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

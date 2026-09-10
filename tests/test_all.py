@@ -1,6 +1,6 @@
 import json
 from src.schemas import MachineRecord, ShiftReport
-from src.services.ollama_service import sanitize_json_response
+from src.services.ai import sanitize_json_response
 from src.extractor import MockShiftExtractor
 from src.exporters import JsonExporter, ExcelExporter
 from src.pipeline import IngestionPipeline

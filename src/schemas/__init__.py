@@ -12,6 +12,10 @@ from src.schemas.api import (
     WebhookPayload,
     WebhookResponse,
     HealthResponse,
+    SupportedProviderInfo,
+    AIConfigResponse,
+    UpdateAIConfigRequest,
+    UpdateAIConfigResponse,
 )
 
 __all__ = [
@@ -26,4 +30,8 @@ __all__ = [
     "WebhookPayload",
     "WebhookResponse",
     "HealthResponse",
+    "SupportedProviderInfo",
+    "AIConfigResponse",
+    "UpdateAIConfigRequest",
+    "UpdateAIConfigResponse",
 ]

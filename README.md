@@ -2,7 +2,7 @@
 
 Sistema automatizado de extracción, validación estricta y sincronización de reportes operativos no estructurados enviados por correo o chat en plantas de moldeo por inyección.
 
-Construido con **Python**, **LangChain**, **Ollama (`qwen3:8b`)**, **Pydantic V2** y **Rich**.
+Construido con **Python**, **FastAPI**, **Pydantic V2** y soporte multiproveedor de IA (**Ollama**, **OpenAI**, **Google Gemini**, **Anthropic Claude**).
 
 ---
 
@@ -83,9 +83,51 @@ curl -X POST "http://localhost:8000/api/v1/webhook/gmail" \
 
 ---
 
+## 🤖 Configuración Multiproveedor de Inteligencia Artificial
+
+El sistema soporta indistintamente proveedores locales y en la nube mediante variables de entorno en `.env`:
+
+| Proveedor | Variable `LLM_PROVIDER` | Modelo Predeterminado | Clave / URL Requerida |
+| :--- | :--- | :--- | :--- |
+| **Ollama (Local)** | `ollama` | `qwen3:8b` | `OLLAMA_BASE_URL` (defecto: `http://localhost:11434`) |
+| **OpenAI** | `openai` | `gpt-4o-mini` | `OPENAI_API_KEY` (opcional: `OPENAI_BASE_URL`) |
+| **Google Gemini** | `gemini` | `gemini-2.5-flash` | `GEMINI_API_KEY` o `GOOGLE_API_KEY` |
+| **Anthropic Claude** | `anthropic` o `claude` | `claude-3-5-sonnet-20240620` | `ANTHROPIC_API_KEY` |
+
+### Endpoint de Gestión Dinámica de Modelos (`/api/v1/ai/models`)
+
+1. **Consultar proveedores y modelos soportados (GET)**:
+```bash
+curl -X GET "http://localhost:8000/api/v1/ai/models"
+```
+Retorna el catálogo completo con los modelos disponibles (`gemini-2.5-flash`, `gemini-1.5-pro`, `gpt-4o`, `claude-3-7-sonnet`, `qwen3:8b`, etc.), si requieren API Key y cuál está actualmente activo.
+
+2. **Cambiar el modelo activo en caliente (POST)**:
+```bash
+# Cambiar a Gemini Pro
+curl -X POST "http://localhost:8000/api/v1/ai/models" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "provider": "gemini",
+       "model": "gemini-1.5-pro",
+       "api_key": "TU_GEMINI_API_KEY"
+     }'
+```
+
+3. **Sobrescribir el proveedor por petición**:
+```json
+{
+  "text": "Actualización del Turno 1: Máquina M102...",
+  "llm_provider": "gemini",
+  "llm_model": "gemini-1.5-pro"
+}
+```
+
+---
+
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite de pruebas automatizadas con Pytest:
+Para ejecutar la suite completa de pruebas automatizadas:
 ```bash
 poetry run pytest tests/ -v
 ```
@@ -98,35 +140,29 @@ poetry run pytest tests/ -v
 rag-for-mails/
 ├── docs/
 │   ├── PROMPT.md                      # Entregable 1: Prompt exacto y esquema
-│   └── ARQUITECTURA_AUTOMATIZACION.md # Entregable 2: Arquitectura y anti-corrupción
+│   ├── ARQUITECTURA_AUTOMATIZACION.md # Entregable 2: Arquitectura y anti-corrupción
+│   └── INTEGRACION_WEBHOOK_GMAIL.md   # Entregable 3: Integración Gmail Pub/Sub
 ├── data/
 │   ├── sample_mails/                  # Archivos de correo de prueba (.txt)
-│   │   ├── turno1_estandar.txt        # Caso del README
-│   │   ├── turno2_scrap_alto.txt      # Caso con anomalía de piezas
-│   │   ├── turno3_multimaquina.txt    # Caso con múltiples máquinas
-│   │   └── turno3_paro_prolongado.txt # Caso con paro mayor
-│   └── output/                        # Reportes generados
-│       ├── reporte_moldeo.xlsx        # Reporte Excel consolidado con los datos extraídos
-│       ├── output.json                # JSON estructurado con la especificación original
-│       └── quarantine.json            # Dead Letter Queue para entradas erróneas
+│   └── output/                        # Reportes generados (Excel, JSON y DLQ)
 ├── src/
-│   ├── config.py                      # Configuración de Ollama, API y rutas
-│   ├── schemas.py                     # Modelos Pydantic V2 de negocio
-│   ├── extractor.py                   # Extractor LangChain + Ollama / Mock
-│   ├── exporters.py                   # Exportador JSON y Excel
+│   ├── config.py                      # Configuración central (IA, Gmail, servidor)
+│   ├── extractor.py                   # Extractor multiproveedor LLMShiftExtractor / Mock
+│   ├── exporters.py                   # Exportadores optimizados a JSON y Excel
 │   ├── pipeline.py                    # Orquestador del flujo E2E
 │   ├── gmail_client.py                # Cliente oficial de Gmail API
-│   ├── services/                      # Capa de servicios (lógica de negocio desacoplada)
-│   │   ├── health_service.py          # Chequeo de estado del sistema
-│   │   ├── report_service.py          # Lógica de extracción de reportes de texto
-│   │   └── webhook_service.py         # Lógica de eventos Pub/Sub, deduplicación y watch
+│   ├── schemas/                       # Esquemas Pydantic V2 (reports.py, api.py)
+│   ├── services/                      # Servicios de negocio desacoplados
+│   │   ├── ai/                        # Módulo multiproveedor de IA
+│   │   │   ├── prompts.py             # Prompts del sistema y ejemplos few-shot
+│   │   │   ├── providers.py           # Adaptadores para Ollama, OpenAI, Gemini y Claude
+│   │   │   └── service.py             # Orquestador LLMService y sanitización JSON
+│   │   ├── health_service.py          # Chequeo de estado del sistema e IA
+│   │   ├── report_service.py          # Extracción y validación de texto
+│   │   └── webhook_service.py         # Manejo de Webhooks, deduplicación y watch()
 │   └── api/
-│       ├── app.py                     # API FastAPI limpia (enrutamiento hacia servicios)
-│       └── schemas.py                 # Modelos Pydantic para peticiones y respuestas
-├── main.py                            # Entrypoint de arranque del servidor FastAPI
+│       └── app.py                     # Servidor FastAPI y enrutamiento
+├── main.py                            # Entrypoint de arranque del servidor
 ├── pyproject.toml                     # Definición de dependencias Poetry
-└── tests/
-    ├── test_all.py                    # Pruebas unitarias de extractor y pipeline
-    ├── test_gmail.py                  # Pruebas unitarias del cliente de Gmail
-    └── test_api.py                    # Pruebas unitarias de endpoints FastAPI
+└── tests/                             # Suite de pruebas unitarias e integración (31 tests)
 ```

@@ -19,6 +19,10 @@ google-auth-oauthlib = "^1.4.1"
 beautifulsoup4 = "^4.15.0"
 fastapi = "^0.141.1"
 uvicorn = {extras = ["standard"], version = "^0.52.4"}
+openai = "^3.13.0"
+google-genai = "^2.22.0"
+anthropic = "^1.5.0"
+python-dotenv = "^1.2.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

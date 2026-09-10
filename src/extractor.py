@@ -2,7 +2,8 @@ from typing import Optional
 import re
 
 from src.schemas import MachineRecord, ExtractionOutput, ShiftReport
-from src.services.ollama_service import (
+from src.services.ai import (
+    LLMService,
     OllamaService,
     is_ollama_available,
     sanitize_json_response,
@@ -25,13 +26,26 @@ class BaseExtractor:
         raise NotImplementedError
 
 
-class OllamaShiftExtractor(BaseExtractor):
+class LLMShiftExtractor(BaseExtractor):
     """
     Extractor de información que delega la inferencia y conexión
-    con LLMs locales al servicio OllamaService.
+    con el proveedor de IA configurado (Ollama, OpenAI, Gemini o Claude).
     """
-    def __init__(self, model_name: Optional[str] = None, base_url: Optional[str] = None):
-        self.service = OllamaService(model_name=model_name, base_url=base_url)
+    def __init__(
+        self,
+        provider: Optional[str] = None,
+        model_name: Optional[str] = None,
+        base_url: Optional[str] = None,
+        temperature: Optional[float] = None,
+        api_key: Optional[str] = None
+    ):
+        self.service = LLMService(
+            provider=provider,
+            model_name=model_name,
+            base_url=base_url,
+            temperature=temperature,
+            api_key=api_key
+        )
 
     def extract(self, raw_text: str, source_file: Optional[str] = None) -> ShiftReport:
         data = self.service.invoke_extraction(raw_text)
@@ -42,6 +56,10 @@ class OllamaShiftExtractor(BaseExtractor):
             raw_source=raw_text,
             source_file=source_file
         )
+
+
+# Alias de compatibilidad
+OllamaShiftExtractor = LLMShiftExtractor
 
 
 class MockShiftExtractor(BaseExtractor):
@@ -132,16 +150,21 @@ class MockShiftExtractor(BaseExtractor):
         )
 
 
-def get_extractor(force_mock: bool = False) -> BaseExtractor:
+def get_extractor(
+    force_mock: bool = False,
+    provider: Optional[str] = None,
+    model: Optional[str] = None
+) -> BaseExtractor:
     """
     Fábrica inteligente de extractores:
-    Si Ollama está en línea y no se fuerza mock, utiliza OllamaShiftExtractor;
+    Si no se fuerza mock y el servicio LLM configurado está disponible
+    (Ollama, OpenAI, Gemini o Claude), utiliza LLMShiftExtractor;
     en caso contrario, utiliza MockShiftExtractor.
     """
     if force_mock:
         return MockShiftExtractor()
 
-    if is_ollama_available():
-        return OllamaShiftExtractor()
-    else:
-        return MockShiftExtractor()
+    service = LLMService(provider=provider, model_name=model)
+    if service.is_online:
+        return LLMShiftExtractor(provider=provider, model_name=model)
+    return MockShiftExtractor()

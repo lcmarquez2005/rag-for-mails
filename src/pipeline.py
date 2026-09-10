@@ -36,8 +36,18 @@ class IngestionPipeline:
     3. Validación de Esquema (Pydantic V2)
     4. Guardado en output.json y reporte_moldeo.xlsx
     """
-    def __init__(self, extractor: Optional[BaseExtractor] = None, force_mock: bool = False):
-        self.extractor = extractor or get_extractor(force_mock=force_mock)
+    def __init__(
+        self,
+        extractor: Optional[BaseExtractor] = None,
+        force_mock: bool = False,
+        provider: Optional[str] = None,
+        model: Optional[str] = None
+    ):
+        self.extractor = extractor or get_extractor(
+            force_mock=force_mock,
+            provider=provider,
+            model=model
+        )
         self.json_exporter = JsonExporter()
         self.excel_exporter = ExcelExporter()
 

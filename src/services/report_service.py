@@ -14,7 +14,11 @@ def process_text_report(payload: ProcessTextRequest) -> ProcessTextResponse:
             detail="El campo 'text' no puede estar vacío."
         )
 
-    pipeline = IngestionPipeline(force_mock=payload.force_mock)
+    pipeline = IngestionPipeline(
+        force_mock=payload.force_mock,
+        provider=payload.llm_provider,
+        model=payload.llm_model
+    )
     result = pipeline.process_text(
         text=payload.text.strip(),
         source_file=payload.source_name or "api_direct"

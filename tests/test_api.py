@@ -13,6 +13,8 @@ def test_health_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
+    assert "llm_provider" in data
+    assert "llm_available" in data
     assert "ollama_available" in data
     assert "server_excel_path" in data
     assert "server_json_path" in data
@@ -188,3 +190,91 @@ def test_webhook_idempotency_skips_duplicate_email():
         assert len(data["details"]) == 1
         assert data["details"][0]["status"] == "skipped_already_processed"
         mock_instance.mark_as_read.assert_called_once_with("already_processed_msg_id")
+
+
+def test_process_text_with_llm_provider_param():
+    payload = {
+        "text": "Turno 1: Máquina M102 con 500 piezas aprobadas. Líder: Carlos Santana",
+        "force_mock": True,
+        "llm_provider": "gemini",
+        "llm_model": "gemini-2.5-flash"
+    }
+    response = client.post("/api/v1/process/text", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["records_extracted"] == 1
+    assert data["records"][0]["machine_id"] == "M102"
+
+
+def test_get_ai_models_endpoint():
+    response = client.get("/api/v1/ai/models")
+    assert response.status_code == 200
+    data = response.json()
+    assert "active_provider" in data
+    assert "active_model" in data
+    assert "supported_providers" in data
+    assert "gemini" in data["supported_providers"]
+    assert "openai" in data["supported_providers"]
+    assert "anthropic" in data["supported_providers"]
+    assert "ollama" in data["supported_providers"]
+
+    gemini_info = data["supported_providers"]["gemini"]
+    assert gemini_info["name"] == "Google Gemini"
+    assert len(gemini_info["models"]) == 1
+    assert gemini_info["models"][0] == gemini_info["default_model"]
+
+
+def test_update_ai_models_endpoint_success():
+    payload = {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "api_key": "AIzaSyFakeKeyForTesting123"
+    }
+    response = client.post("/api/v1/ai/models", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["active_provider"] == "gemini"
+    assert data["active_model"] == "gemini-1.5-pro"
+    assert data["is_available"] is True
+
+    # Confirm GET reflects the updated configuration
+    get_resp = client.get("/api/v1/ai/models")
+    assert get_resp.status_code == 200
+    get_data = get_resp.json()
+    assert get_data["active_provider"] == "gemini"
+    assert get_data["active_model"] == "gemini-1.5-pro"
+
+
+def test_update_ai_models_endpoint_provider_only():
+    # Enviar solo 'provider' debe usar el modelo preestablecido en .env
+    response = client.post("/api/v1/ai/models", json={"provider": "ollama"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["active_provider"] == "ollama"
+    assert data["active_model"] == "qwen3:8b"
+
+    # Cambiar a gemini enviando solo provider
+    resp_gemini = client.post("/api/v1/ai/models", json={"provider": "gemini"})
+    assert resp_gemini.status_code == 200
+    data_gemini = resp_gemini.json()
+    assert data_gemini["success"] is True
+    assert data_gemini["active_provider"] == "gemini"
+    # Debe tomar el modelo preestablecido en .env (ej. gemini-3.5-flash o gemini-2.5-flash)
+    assert "gemini" in data_gemini["active_model"]
+
+    # Regresar a ollama por defecto
+    client.post("/api/v1/ai/models", json={"provider": "ollama"})
+
+
+def test_update_ai_models_endpoint_invalid_provider():
+    payload = {
+        "provider": "non_existent_provider_xyz"
+    }
+    response = client.post("/api/v1/ai/models", json=payload)
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "no reconocido" in data["detail"]

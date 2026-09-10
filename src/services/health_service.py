@@ -1,12 +1,16 @@
 from src import config
-from src.services.ollama_service import is_ollama_available
+from src.services.ai import LLMService, is_ollama_available
 from src.schemas import HealthResponse
 
 
 def check_system_health() -> HealthResponse:
-    """Verifica el estado del servicio, motor LLM (Ollama) y archivos de persistencia."""
+    """Verifica el estado del servicio, motor LLM (Ollama/OpenAI/Gemini/Claude) y archivos de persistencia."""
+    llm_svc = LLMService()
     return HealthResponse(
         status="ok",
+        llm_provider=llm_svc.provider_name,
+        llm_model=llm_svc.model_name,
+        llm_available=llm_svc.is_online,
         ollama_available=is_ollama_available(),
         ollama_model=config.OLLAMA_MODEL,
         gmail_credentials_found=config.GMAIL_CREDENTIALS_PATH.exists(),
