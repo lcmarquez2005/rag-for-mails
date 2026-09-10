@@ -108,6 +108,15 @@ class IngestionPipeline:
             results.append(res)
         return results
 
+    def process_gmail_message(self, message: Any) -> PipelineResult:
+        """
+        Procesa un correo obtenido de Gmail (GmailMessage).
+        Entrega el texto al pipeline de extracción y exportación.
+        """
+        text = message.to_ingestion_text() if hasattr(message, "to_ingestion_text") else str(message)
+        source_id = f"gmail_{getattr(message, 'id', 'unknown')}"
+        return self.process_text(text=text, source_file=source_id)
+
     def _send_to_quarantine(self, raw_text: str, source_file: Optional[str], error_message: str):
         """Registra entradas fallidas en el archivo de cuarentena."""
         quarantine_item = QuarantineRecord(

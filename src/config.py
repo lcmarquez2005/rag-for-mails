@@ -19,3 +19,11 @@ SAMPLE_MAILS_DIR.mkdir(parents=True, exist_ok=True)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", "0.0"))
+
+# Configuración de Gmail API
+GMAIL_CREDENTIALS_PATH = BASE_DIR / "credentials.json"
+GMAIL_TOKEN_PATH = BASE_DIR / "token.json"
+GMAIL_AUTHORIZED_SENDER = os.getenv("GMAIL_AUTHORIZED_SENDER", "l23200286@pachuca.tecnm.mx")
+GMAIL_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.modify"
+]
