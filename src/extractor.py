@@ -128,10 +128,15 @@ class MockShiftExtractor(BaseExtractor):
                 shift = "Turno 1"
 
         # Identificar todas las máquinas únicas mencionadas
-        all_machines = re.findall(r'\bM\d{2,4}\b', raw_text, flags=re.IGNORECASE)
+        all_machines = re.findall(r'\bM\d{1,4}\b', raw_text, flags=re.IGNORECASE)
         if not all_machines:
-            loose_machines = re.findall(r'(?:máquina|maquina|maquna|maq|inyectora)\s*[:=]?\s*(\d{2,4})', raw_text, flags=re.IGNORECASE)
-            all_machines = [f"M{m}" for m in loose_machines]
+            loose_machines = re.findall(r'(?:máquina|maquina|maquna|maq|inyectora)\s*[:=]?\s*(\d{1,4}|[a-záéíóúñ]+)', raw_text, flags=re.IGNORECASE)
+            for m in loose_machines:
+                m_clean = m.strip().lower()
+                if m_clean.isdigit():
+                    all_machines.append(f"M{m_clean}")
+                elif m_clean in SPANISH_WORD_NUMBERS:
+                    all_machines.append(f"M{SPANISH_WORD_NUMBERS[m_clean]}")
 
         unique_machines = list(dict.fromkeys([m.upper() for m in all_machines]))
         if not unique_machines:
@@ -184,7 +189,7 @@ class MockShiftExtractor(BaseExtractor):
         elif "dos horas" in b_lower:
             downtime = 120
         else:
-            down_match = re.search(r'(?:detenida durante|paro de|parada|paroo|fuera de servicio|tiempo detenido)?\s*:?\s*(\d+|[a-záéíóúñ\s]+?)\s*(?:minutos|min|m\b)', block, re.IGNORECASE)
+            down_match = re.search(r'(\d+|[a-záéíóúñ]+(?:\s+y\s+[a-záéíóúñ]+)?)\s*(?:minutos|min\b)', block, re.IGNORECASE)
             if down_match:
                 downtime = extract_number_from_text(down_match.group(1), default=0)
             else:
@@ -248,8 +253,9 @@ def get_extractor(
     """
     Fábrica inteligente de extractores:
     Si no se fuerza mock y el servicio LLM configurado está disponible
-    (Ollama, OpenAI, Gemini o Claude), utiliza LLMShiftExtractor;
-    en caso contrario, utiliza MockShiftExtractor.
+    (Gemini, OpenAI, Claude u Ollama), utiliza LLMShiftExtractor.
+    Si el proveedor principal no está disponible pero Gemini tiene API Key,
+    intenta Gemini antes de degradar a MockShiftExtractor.
     """
     if force_mock:
         return MockShiftExtractor()
@@ -257,4 +263,13 @@ def get_extractor(
     service = LLMService(provider=provider, model_name=model)
     if service.is_online:
         return LLMShiftExtractor(provider=provider, model_name=model)
+
+    if config.GEMINI_API_KEY and (not provider or provider.strip().lower() != "gemini"):
+        try:
+            gemini_service = LLMService(provider="gemini")
+            if gemini_service.is_online:
+                return LLMShiftExtractor(provider="gemini")
+        except Exception:
+            pass
+
     return MockShiftExtractor()

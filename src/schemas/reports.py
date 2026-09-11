@@ -45,21 +45,21 @@ class MachineRecord(BaseModel):
     @classmethod
     def normalizar_machine_id(cls, v: str) -> str:
         if not v or not isinstance(v, str):
-            raise ValueError("El identificador machine_id no puede estar vacío.")
+            return ""
         v_clean = v.strip().upper()
         v_clean = re.sub(r'^(MAQUINA|MAQ|M)[-_\s]*', 'M', v_clean)
-        if not re.match(r'^M\d{2,4}[A-Z]?$', v_clean):
-            if re.match(r'^\d{2,4}$', v_clean):
+        if not re.match(r'^M\d{1,4}[A-Z]?$', v_clean):
+            if re.match(r'^\d{1,4}$', v_clean):
                 v_clean = f"M{v_clean}"
             else:
-                raise ValueError(f"Formato de machine_id '{v}' no reconocido. Debe ser tipo 'M102'.")
+                return v_clean
         return v_clean
 
     @field_validator("shift_leader")
     @classmethod
     def normalizar_shift_leader(cls, v: str) -> str:
         if not v or not isinstance(v, str):
-            return "No especificado"
+            return ""
         return " ".join(v.strip().split()).title()
 
     @field_validator("shift")
@@ -68,7 +68,7 @@ class MachineRecord(BaseModel):
         if isinstance(v, int):
             return f"Turno {v}"
         if not v or not isinstance(v, str):
-            return "Turno No Especificado"
+            return ""
         v_clean = v.strip()
         match = re.search(r'\b(1|2|3|uno|dos|tres)\b', v_clean, re.IGNORECASE)
         if match:
