@@ -25,6 +25,10 @@ def test_system_status_endpoint():
     assert "ollama_available" in data
     assert "server_excel_path" in data
     assert "server_json_path" in data
+    assert "google_sheets_configured" in data
+    assert "google_sheet_url" in data
+    assert "google_drive_folder_url" in data
+    assert "export_target" in data
 
 
 def test_process_text_json():
@@ -43,6 +47,8 @@ def test_process_text_json():
     assert data["records"][0]["rejected_parts"] == 15
     assert data["records"][0]["shift_leader"] == "Juan Pérez"
     assert "server_excel_path" in data
+    assert "google_sheet_url" in data
+    assert "google_drive_folder_url" in data
 
 
 def test_process_text_secondary():

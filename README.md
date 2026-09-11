@@ -14,6 +14,8 @@ Construido con **Python**, **FastAPI**, **Pydantic V2** y soporte multiproveedor
    * Stack técnico, pipeline de ingesta, capa de validación con Pydantic V2, Dead Letter Queue y persistencia en `output.json`.
 3. 📄 [**Integración de Webhook de Gmail y Event-Driven (docs/INTEGRACION_WEBHOOK_GMAIL.md)**](docs/INTEGRACION_WEBHOOK_GMAIL.md)
    * Arquitectura del Webhook FastAPI, integración con Google Cloud Pub/Sub, endpoints, payloads, simulación y guía de despliegue en producción.
+4. 📄 [**Especificación de Endpoints y Payloads para Frontend (docs/API_ENDPOINTS.md)**](docs/API_ENDPOINTS.md)
+   * Catálogo completo de endpoints, payloads JSON, modelos TypeScript y ejemplos de consumo para el desarrollo de minifrontends.
 
 ---
 
@@ -181,7 +183,8 @@ rag-for-mails/
 ├── src/
 │   ├── config.py                      # Configuración central (IA, Gmail, servidor)
 │   ├── extractor.py                   # Extractor multiproveedor LLMShiftExtractor / Mock
-│   ├── exporters.py                   # Exportadores optimizados a JSON y Excel
+│   ├── exporters.py                   # Exportadores optimizados a JSON, Excel y Google Sheets
+│   ├── sheets_client.py               # Cliente oficial Google Sheets API v4 con formato corporativo
 │   ├── pipeline.py                    # Orquestador del flujo E2E
 │   ├── gmail_client.py                # Cliente oficial de Gmail API
 │   ├── schemas/                       # Esquemas Pydantic V2 (reports.py, api.py)
@@ -190,12 +193,12 @@ rag-for-mails/
 │   │   │   ├── prompts.py             # Prompts del sistema y ejemplos few-shot
 │   │   │   ├── providers.py           # Adaptadores para Ollama, OpenAI, Gemini y Claude
 │   │   │   └── service.py             # Orquestador LLMService y sanitización JSON
-│   │   ├── health_service.py          # Chequeo de estado del sistema e IA
+│   │   ├── health_service.py          # Chequeo de estado del sistema, IA y Google Sheets
 │   │   ├── report_service.py          # Extracción y validación de texto
 │   │   └── webhook_service.py         # Manejo de Webhooks, deduplicación y watch()
 │   └── api/
 │       └── app.py                     # Servidor FastAPI y enrutamiento
 ├── main.py                            # Entrypoint de arranque del servidor
 ├── pyproject.toml                     # Definición de dependencias Poetry
-└── tests/                             # Suite de pruebas unitarias e integración (31 tests)
+└── tests/                             # Suite de pruebas unitarias e integración (45 tests)
 ```

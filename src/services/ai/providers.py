@@ -7,6 +7,8 @@ from src.services.ai.prompts import (
     EXTRACTION_SYSTEM_PROMPT,
     FEW_SHOT_USER_EXAMPLE,
     FEW_SHOT_AI_EXAMPLE,
+    FEW_SHOT_USER_EXAMPLE_2,
+    FEW_SHOT_AI_EXAMPLE_2,
 )
 
 
@@ -72,6 +74,8 @@ class OllamaProvider(BaseLLMProvider):
                 SystemMessage(content=EXTRACTION_SYSTEM_PROMPT),
                 HumanMessage(content=FEW_SHOT_USER_EXAMPLE),
                 AIMessage(content=FEW_SHOT_AI_EXAMPLE),
+                HumanMessage(content=FEW_SHOT_USER_EXAMPLE_2),
+                AIMessage(content=FEW_SHOT_AI_EXAMPLE_2),
                 HumanMessagePromptTemplate.from_template("Analiza el siguiente reporte de turno y genera el JSON estructurado:\n\n{input_text}")
             ])
             self._chain = prompt | llm
@@ -118,6 +122,8 @@ class OpenAIProvider(BaseLLMProvider):
                 {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
                 {"role": "user", "content": FEW_SHOT_USER_EXAMPLE},
                 {"role": "assistant", "content": FEW_SHOT_AI_EXAMPLE},
+                {"role": "user", "content": FEW_SHOT_USER_EXAMPLE_2},
+                {"role": "assistant", "content": FEW_SHOT_AI_EXAMPLE_2},
                 {"role": "user", "content": f"Analiza el siguiente reporte de turno y genera el JSON estructurado:\n\n{input_text}"}
             ]
         )
@@ -153,7 +159,8 @@ class GeminiProvider(BaseLLMProvider):
         client = self._get_client()
 
         prompt_body = (
-            f"{FEW_SHOT_USER_EXAMPLE}\n\n{FEW_SHOT_AI_EXAMPLE}\n\n"
+            f"EJEMPLO 1:\n{FEW_SHOT_USER_EXAMPLE}\n{FEW_SHOT_AI_EXAMPLE}\n\n"
+            f"EJEMPLO 2:\n{FEW_SHOT_USER_EXAMPLE_2}\n{FEW_SHOT_AI_EXAMPLE_2}\n\n"
             f"Analiza el siguiente reporte de turno y genera el JSON estructurado:\n\n{input_text}"
         )
         response = client.models.generate_content(
@@ -202,6 +209,8 @@ class AnthropicProvider(BaseLLMProvider):
             messages=[
                 {"role": "user", "content": FEW_SHOT_USER_EXAMPLE},
                 {"role": "assistant", "content": FEW_SHOT_AI_EXAMPLE},
+                {"role": "user", "content": FEW_SHOT_USER_EXAMPLE_2},
+                {"role": "assistant", "content": FEW_SHOT_AI_EXAMPLE_2},
                 {"role": "user", "content": f"Analiza el siguiente reporte de turno y genera el JSON estructurado:\n\n{input_text}"}
             ]
         )

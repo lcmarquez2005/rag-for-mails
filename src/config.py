@@ -39,20 +39,31 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 # Proveedor: Google Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 # Proveedor: Anthropic Claude
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
 
-# Configuración de Gmail API
+# Configuración de Google API (Gmail & Sheets)
 GMAIL_CREDENTIALS_PATH = BASE_DIR / "credentials.json"
 GMAIL_TOKEN_PATH = BASE_DIR / "token.json"
 GMAIL_TOKEN_JSON = os.getenv("GMAIL_TOKEN_JSON", "").strip()
 GMAIL_AUTHORIZED_SENDER = os.getenv("GMAIL_AUTHORIZED_SENDER", "l23200286@pachuca.tecnm.mx")
-GMAIL_SCOPES = [
-    "https://www.googleapis.com/auth/gmail.modify"
+
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/spreadsheets",
 ]
+GMAIL_SCOPES = GOOGLE_SCOPES
+
+# Configuración de Google Sheets y Drive
+GOOGLE_DRIVE_FOLDER_NAME = os.getenv("GOOGLE_DRIVE_FOLDER_NAME", "Reportes de Moldeo").strip()
+GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "1O2hLAX0ypoCSng1wwTivfSNzTOAczqnq").strip()
+GOOGLE_DRIVE_FOLDER_URL = os.getenv("GOOGLE_DRIVE_FOLDER_URL", "https://drive.google.com/drive/folders/1O2hLAX0ypoCSng1wwTivfSNzTOAczqnq?hl=es").strip()
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "").strip()
+GOOGLE_SHEET_TAB_NAME = os.getenv("GOOGLE_SHEET_TAB_NAME", "Reportes").strip()
+EXPORT_TARGET = os.getenv("EXPORT_TARGET", "both").strip().lower()
 
 # Configuración del Servidor FastAPI
 API_HOST = os.getenv("API_HOST", "0.0.0.0")

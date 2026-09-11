@@ -3,10 +3,11 @@ from pathlib import Path
 from typing import Optional, List, Any
 from datetime import datetime, timezone
 
+from src import config
 from src.config import QUARANTINE_PATH, SAMPLE_MAILS_DIR, OUTPUT_JSON_PATH, EXCEL_OUTPUT_PATH
 from src.schemas import ShiftReport, QuarantineRecord
 from src.extractor import get_extractor, BaseExtractor
-from src.exporters import JsonExporter, ExcelExporter
+from src.exporters import JsonExporter, ExcelExporter, GoogleSheetsExporter
 
 
 class PipelineResult:
@@ -17,13 +18,15 @@ class PipelineResult:
         report: Optional[ShiftReport] = None,
         json_path: Optional[Path] = None,
         excel_path: Optional[Path] = None,
+        sheet_url: Optional[str] = None,
         error_message: Optional[str] = None,
         source_file: Optional[str] = None
     ):
         self.success = success
         self.report = report
         self.json_path = json_path or OUTPUT_JSON_PATH
-        self.excel_path = excel_path or EXCEL_OUTPUT_PATH
+        self.excel_path = excel_path if excel_path is not None else (EXCEL_OUTPUT_PATH if config.EXPORT_TARGET != "sheets" else None)
+        self.sheet_url = sheet_url
         self.error_message = error_message
         self.source_file = source_file
 
@@ -32,9 +35,9 @@ class IngestionPipeline:
     """
     Orquestador E2E:
     1. Ingesta (Archivo o Texto)
-    2. Extracción Semántica (LangChain + Ollama / Mock)
+    2. Extracción Semántica (LangChain + Ollama / Gemini / Claude / OpenAI / Mock)
     3. Validación de Esquema (Pydantic V2)
-    4. Guardado en output.json y reporte_moldeo.xlsx
+    4. Guardado en output.json, reporte_moldeo.xlsx y/o Google Sheets
     """
     def __init__(
         self,
@@ -50,6 +53,7 @@ class IngestionPipeline:
         )
         self.json_exporter = JsonExporter()
         self.excel_exporter = ExcelExporter()
+        self.sheets_exporter = GoogleSheetsExporter()
 
     def process_text(
         self,
@@ -75,14 +79,21 @@ class IngestionPipeline:
             # 2. Exportación a output.json (estructura original exacta)
             json_result = self.json_exporter.export_report(report)
 
-            # 3. Exportación a Excel con deduplicación
-            excel_file = self.excel_exporter.export_report(report)
+            # 3. Exportación a Google Sheets y/o Excel según EXPORT_TARGET
+            sheet_url = None
+            if config.EXPORT_TARGET in ("sheets", "both"):
+                sheet_url = self.sheets_exporter.export_report(report)
+
+            excel_file = None
+            if config.EXPORT_TARGET in ("excel", "both"):
+                excel_file = self.excel_exporter.export_report(report)
 
             return PipelineResult(
                 success=True,
                 report=report,
                 json_path=Path(json_result["output_file"]),
                 excel_path=excel_file,
+                sheet_url=sheet_url,
                 source_file=source_file
             )
 

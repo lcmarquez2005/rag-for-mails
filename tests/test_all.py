@@ -203,4 +203,42 @@ def test_processed_tracker(tmp_path):
     assert len(data) == 1
 
 
+def test_extractor_textual_numbers_and_typos():
+    from src.extractor import MockShiftExtractor
+    extractor = MockShiftExtractor()
+    informal_text = """
+    Reporte del turno uno
+    Superbisor: Roberto Gomez
+    maquna 102
+    se sacaron mil doscientas piezas aprovadas y rechasadas quince por rebaba.
+    tiempo detenido cuarenta y cinco minutos por ajuste de parametros.
+    """
+    report = extractor.extract(informal_text)
+    assert len(report.records) == 1
+    rec = report.records[0]
+    assert rec.machine_id == "M102"
+    assert rec.shift == "Turno 1"
+    assert rec.shift_leader == "Roberto Gomez"
+    assert rec.approved_parts == 1200
+    assert rec.rejected_parts == 15
+    assert rec.downtime_minutes == 45
+    assert "rebaba" in rec.reasons
+    assert "ajuste de parametros" in rec.reasons
+
+
+def test_extractor_reasons_and_mil_quinientas():
+    from src.extractor import MockShiftExtractor
+    extractor = MockShiftExtractor()
+    text = "Reporte del turno uno. La maquina M106 estuvo parada cuarenta minutos por falta de materia prima en tolva. Se fabricaron mil quinientas piezas aprobadas y doce piezas rechazadas por espesor irregular. Supervisor a cargo: Sofia Ramirez."
+    report = extractor.extract(text)
+    assert len(report.records) == 1
+    rec = report.records[0]
+    assert rec.machine_id == "M106"
+    assert rec.shift == "Turno 1"
+    assert rec.shift_leader == "Sofia Ramirez"
+    assert rec.approved_parts == 1500
+    assert rec.rejected_parts == 12
+    assert rec.downtime_minutes == 40
+    assert "falta de materia prima en tolva" in rec.reasons
+    assert "espesor irregular" in rec.reasons
 

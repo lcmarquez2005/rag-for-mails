@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from src import config
 from src.pipeline import IngestionPipeline
 from src.schemas import ProcessTextRequest, ProcessTextResponse
 
@@ -29,7 +30,9 @@ def process_text_report(payload: ProcessTextRequest) -> ProcessTextResponse:
         success=result.success,
         records_extracted=len(records),
         records=records,
-        server_excel_path=str(result.excel_path),
+        server_excel_path=str(result.excel_path) if result.excel_path else None,
         server_json_path=str(result.json_path),
+        google_sheet_url=result.sheet_url,
+        google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
         error_message=result.error_message,
     )

@@ -33,8 +33,10 @@ class ProcessTextResponse(BaseModel):
     success: bool
     records_extracted: int
     records: List[MachineRecord] = Field(default_factory=list)
-    server_excel_path: str
+    server_excel_path: Optional[str] = None
     server_json_path: str
+    google_sheet_url: Optional[str] = Field(default=None, description="URL en vivo del Google Sheet")
+    google_drive_folder_url: Optional[str] = Field(default=None, description="URL de la carpeta en Google Drive")
     error_message: Optional[str] = None
 
 
@@ -77,7 +79,9 @@ class WebhookResponse(BaseModel):
     mode: str
     processed_count: int
     details: List[Dict[str, Any]] = Field(default_factory=list)
-    server_excel_path: str
+    server_excel_path: Optional[str] = None
+    google_sheet_url: Optional[str] = Field(default=None, description="URL en vivo del Google Sheet")
+    google_drive_folder_url: Optional[str] = Field(default=None, description="URL de la carpeta en Google Drive")
     message: str
 
 
@@ -91,6 +95,10 @@ class HealthResponse(BaseModel):
     ollama_model: str
     gmail_credentials_found: bool
     gmail_token_found: bool
+    google_sheets_configured: bool = Field(default=False, description="Indica si Google Sheets está configurado")
+    google_sheet_url: Optional[str] = Field(default=None, description="URL del Google Sheet maestro")
+    google_drive_folder_url: Optional[str] = Field(default=None, description="URL de la carpeta en Google Drive")
+    export_target: str = Field(default="both", description="Destino de exportación ('both', 'sheets', 'excel')")
     server_excel_path: str
     server_json_path: str
 

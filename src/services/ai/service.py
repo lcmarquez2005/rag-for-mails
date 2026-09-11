@@ -83,7 +83,7 @@ def get_provider_configured_model(provider: str) -> str:
     """Devuelve el modelo configurado en .env para el proveedor indicado."""
     norm = (provider or "").strip().lower()
     if norm in ("gemini", "google"):
-        return config.GEMINI_MODEL or "gemini-2.5-flash"
+        return config.GEMINI_MODEL or "gemini-flash-latest"
     elif norm in ("openai",):
         return config.OPENAI_MODEL or "gpt-4o-mini"
     elif norm in ("anthropic", "claude"):

@@ -42,7 +42,9 @@ def handle_gmail_webhook(payload: WebhookPayload) -> WebhookResponse:
                 mode="simulation",
                 processed_count=0,
                 details=[{"error": result.error_message}],
-                server_excel_path=str(config.EXCEL_OUTPUT_PATH),
+                server_excel_path=str(result.excel_path) if result.excel_path else None,
+                google_sheet_url=result.sheet_url,
+                google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
                 message=f"Fallo en simulación: {result.error_message}",
             )
 
@@ -52,8 +54,10 @@ def handle_gmail_webhook(payload: WebhookPayload) -> WebhookResponse:
             mode="simulation",
             processed_count=len(records_data),
             details=records_data,
-            server_excel_path=str(config.EXCEL_OUTPUT_PATH),
-            message="Texto simulado procesado y Excel del servidor actualizado correctamente.",
+            server_excel_path=str(result.excel_path) if result.excel_path else None,
+            google_sheet_url=result.sheet_url,
+            google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
+            message="Texto simulado procesado y sincronizado correctamente.",
         )
 
     # 2. Modo Notificación de Google Cloud Pub/Sub
@@ -75,7 +79,9 @@ def handle_gmail_webhook(payload: WebhookPayload) -> WebhookResponse:
             mode="gmail_pubsub",
             processed_count=0,
             details=[{"error": str(e), "pubsub_info": pubsub_info}],
-            server_excel_path=str(config.EXCEL_OUTPUT_PATH),
+            server_excel_path=str(config.EXCEL_OUTPUT_PATH) if config.EXPORT_TARGET != "sheets" else None,
+            google_sheet_url=f"https://docs.google.com/spreadsheets/d/{config.GOOGLE_SHEET_ID}/edit" if config.GOOGLE_SHEET_ID else None,
+            google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
             message=f"Error consultando Gmail API: {str(e)}",
         )
 
@@ -85,7 +91,9 @@ def handle_gmail_webhook(payload: WebhookPayload) -> WebhookResponse:
             mode="gmail_pubsub",
             processed_count=0,
             details=[{"status": "no_new_authorized_emails", "pubsub_info": pubsub_info}],
-            server_excel_path=str(config.EXCEL_OUTPUT_PATH),
+            server_excel_path=str(config.EXCEL_OUTPUT_PATH) if config.EXPORT_TARGET != "sheets" else None,
+            google_sheet_url=f"https://docs.google.com/spreadsheets/d/{config.GOOGLE_SHEET_ID}/edit" if config.GOOGLE_SHEET_ID else None,
+            google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
             message="Notificación recibida. No se encontraron correos no leídos del remitente autorizado.",
         )
 
@@ -148,8 +156,10 @@ def handle_gmail_webhook(payload: WebhookPayload) -> WebhookResponse:
         mode="gmail_pubsub",
         processed_count=len(processed_details),
         details=processed_details,
-        server_excel_path=str(config.EXCEL_OUTPUT_PATH),
-        message=f"Se procesaron {len(processed_details)} correo(s) y se actualizó el Excel en el servidor.",
+        server_excel_path=str(config.EXCEL_OUTPUT_PATH) if config.EXPORT_TARGET != "sheets" else None,
+        google_sheet_url=f"https://docs.google.com/spreadsheets/d/{config.GOOGLE_SHEET_ID}/edit" if config.GOOGLE_SHEET_ID else None,
+        google_drive_folder_url=config.GOOGLE_DRIVE_FOLDER_URL if config.GOOGLE_DRIVE_FOLDER_URL else None,
+        message=f"Se procesaron {len(processed_details)} correo(s) y se sincronizaron los reportes.",
     )
 
 

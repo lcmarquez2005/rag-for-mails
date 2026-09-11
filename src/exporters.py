@@ -262,3 +262,83 @@ class JsonExporter:
             "records_inserted": len(new_items),
             "payload_sample": new_items
         }
+
+
+class GoogleSheetsExporter:
+    """
+    Gestiona la sincronización en tiempo real con una hoja única de Google Sheets
+    ubicada en la carpeta designada de Google Drive, con deduplicación idempotente
+    y trazabilidad por ID de Correo y Máquina.
+    """
+    HEADERS = [
+        "ID de Correo / Origen",
+        "Fecha del Correo",
+        "Turno",
+        "Máquina ID",
+        "Líder de Turno",
+        "Paro (Minutos)",
+        "Piezas Aprobadas",
+        "Piezas Rechazadas",
+        "Motivos / Observaciones"
+    ]
+
+    def __init__(
+        self,
+        sheet_id: Optional[str] = None,
+        tab_name: Optional[str] = None,
+        client: Optional[Any] = None,
+    ):
+        self.sheet_id = (sheet_id if sheet_id is not None else config.GOOGLE_SHEET_ID).strip()
+        self.tab_name = (tab_name if tab_name is not None else config.GOOGLE_SHEET_TAB_NAME).strip() or "Reportes"
+        self.client = client
+
+    def _get_client(self):
+        if self.client is None:
+            from src.sheets_client import GoogleSheetsClient
+            self.client = GoogleSheetsClient()
+        return self.client
+
+    def export_report(self, report: ShiftReport) -> Optional[str]:
+        """
+        Exporta el reporte a Google Sheets de manera idempotente.
+        Retorna la URL web de edición del archivo Google Sheet o None si no está configurado.
+        """
+        if not self.sheet_id:
+            return None
+
+        client = self._get_client()
+        email_id_str = report.email_id or report.source_file or "Entrada Directa"
+        email_date_str = report.email_date or "N/A"
+
+        try:
+            existing_keys = client.get_existing_keys(self.sheet_id, self.tab_name)
+            rows_to_insert = []
+
+            for record in report.records:
+                record_key = (str(email_id_str).strip(), str(record.machine_id).strip())
+                if record_key in existing_keys:
+                    continue
+
+                existing_keys.add(record_key)
+                rows_to_insert.append([
+                    email_id_str,
+                    email_date_str,
+                    record.shift or "N/A",
+                    record.machine_id,
+                    record.shift_leader,
+                    record.downtime_minutes,
+                    record.approved_parts,
+                    record.rejected_parts,
+                    ", ".join(record.reasons) if record.reasons else "N/A"
+                ])
+
+            if rows_to_insert:
+                client.append_rows(self.sheet_id, rows_to_insert, tab_name=self.tab_name)
+
+            return f"https://docs.google.com/spreadsheets/d/{self.sheet_id}/edit"
+        except Exception as e:
+            import logging
+            logger = logging.getLogger("rag_mails.exporters.sheets")
+            logger.error(f"Error sincronizando con Google Sheets: {e}", exc_info=True)
+            return None
+
