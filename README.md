@@ -1,170 +1,185 @@
-# rag-for-mails 🏭
+# Sistema Inteligente de Extracción y Reportes de Moldeo (RAG for Mails) 🏭
 
-Sistema automatizado de extracción, validación estricta y sincronización de reportes operativos no estructurados enviados por correo o chat en plantas de moldeo por inyección.
+Plataforma empresarial para la **ingesta automatizada, extracción con inteligencia artificial, validación estricta y sincronización en tiempo real** de reportes operativos de producción en plantas de moldeo por inyección y manufactura plástica.
 
-Construido con **Python**, **FastAPI**, **Pydantic V2** y soporte multiproveedor de IA (**Ollama**, **OpenAI**, **Google Gemini**, **Anthropic Claude**).
-
----
-
-## 🎯 Entregables del Proyecto
-
-1. 📄 [**Especificación del Prompt de Extracción (docs/PROMPT.md)**](docs/PROMPT.md)
-   * Prompt exacto de sistema, Few-Shot guidance, esquema JSON formal y manejo de casos borde (unidades de tiempo, scrap, multi-máquina).
-2. 📄 [**Documento de Arquitectura E2E y Prevención de Corrupción (docs/ARQUITECTURA_AUTOMATIZACION.md)**](docs/ARQUITECTURA_AUTOMATIZACION.md)
-   * Stack técnico, pipeline de ingesta, capa de validación con Pydantic V2, Dead Letter Queue y persistencia en `output.json`.
-3. 📄 [**Integración de Webhook de Gmail y Event-Driven (docs/INTEGRACION_WEBHOOK_GMAIL.md)**](docs/INTEGRACION_WEBHOOK_GMAIL.md)
-   * Arquitectura del Webhook FastAPI, integración con Google Cloud Pub/Sub, endpoints, payloads, simulación y guía de despliegue en producción.
-4. 📄 [**Especificación de Endpoints y Payloads para Frontend (docs/API_ENDPOINTS.md)**](docs/API_ENDPOINTS.md)
-   * Catálogo completo de endpoints, payloads JSON, modelos TypeScript y ejemplos de consumo para el desarrollo de minifrontends.
+El sistema transforma mensajes no estructurados (correos electrónicos de turno, reportes de supervisores o chats de planta)—incluso con lenguaje coloquial, abreviaturas, faltas ortográficas o cantidades expresadas en palabras—en registros normalizados y los sincroniza de inmediato tanto en un **Google Sheet maestro corporativo en Google Drive** como en archivos **Excel y JSON locales**.
 
 ---
 
-## 🚀 Inicio Rápido con FastAPI
+## 🎯 Capacidades Principales
 
-### 1. Instalación de Dependencias
-```bash
-poetry install
-```
-
-### 2. Iniciar el Servidor FastAPI
-Para iniciar el servidor en modo desarrollo con recarga automática:
-```bash
-poetry run python main.py
-```
-o directamente con uvicorn:
-```bash
-poetry run uvicorn src.api.app:app --reload --port 8000
-```
-La documentación interactiva de Swagger UI estará disponible en:
-👉 `http://127.0.0.1:8000/docs`
+- **Extracción Semántica con LLM**: Motor de inferencia multiproveedor compatible con **Google Gemini** (predeterminado: `gemini-3.6-flash`), **OpenAI** (`gpt-4o-mini`), **Anthropic Claude** (`claude-3-5-sonnet`) y modelos locales mediante **Ollama** (`qwen3:8b`).
+- **Tolerancia a Lenguaje Real de Planta**:
+  - Conversión estricta de números escritos en palabras a enteros (`"mil quinientas"` $\rightarrow$ `1500`, `"cuarenta y cinco minutos"` $\rightarrow$ `45`, `"quince"` $\rightarrow$ `15`, `"sin scrap"` $\rightarrow$ `0`).
+  - Tolerancia fonética y ortográfica ante términos habituales de planta (`"aprovadas"`, `"rechasadas"`, `"maquna"`, `"superbisor"`, `"defestos"`).
+  - Extracción fiel de las justificaciones y causas de paro o rechazo en el campo `reasons` (`"falta de materia prima en tolva"`, `"espesor irregular"`).
+  - Normalización estricta de nomenclatura para turnos (`"Turno 1"`, `"Turno 2"`, `"Turno 3"`) y máquinas (`"M102"`, `"M106"`).
+- **Sincronización en Tiempo Real con Google Sheets**:
+  - Conexión oficial mediante Google Sheets API v4 en la carpeta designada de Google Drive (*Reportes de Moldeo*).
+  - Formato corporativo idéntico a Excel: cabecera en azul marino institucional (`#1F4E79`), tipografía blanca en negrita, primera fila inmovilizada (*frozen row*) y bordes finos.
+  - Deduplicación idempotente basada en el par `(ID Correo / Origen, Máquina ID)` para evitar registros repetidos ante reintentos de red.
+- **Validación Estricta de Esquemas**: Garantía de integridad de datos mediante modelos fuertemente tipados con **Pydantic V2**.
+- **Arquitectura Event-Driven (Gmail API & Webhooks)**: Soporte para notificaciones push de Google Cloud Pub/Sub y simulación directa de correos entrantes.
 
 ---
 
-### 🐳 Despliegue con Docker (Opcional)
+## 🐳 Ejecución y Despliegue con Docker
 
-Puedes construir y ejecutar el contenedor fácilmente con Docker o Docker Compose:
+La aplicación está completamente dockerizada sobre imágenes optimizadas basadas en `python:3.12-slim-bookworm` con servidor ASGI **Uvicorn** de alto rendimiento y healthchecks integrados.
 
-**Con Docker Compose (Recomendado):**
+### 1. Requisitos Previos
+- [Docker Engine](https://docs.docker.com/engine/install/) $\ge$ 24.0 o [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+- Archivo de variables de entorno [`.env`](.env) configurado (puedes basarte en [`.env.example`](.env.example)).
+- Archivos de autenticación de Google ([`credentials.json`](credentials.json) y [`token.json`](token.json)) en la raíz del proyecto para la sincronización con Google Sheets y Gmail.
+
+---
+
+### 2. Ejecución con Docker Compose (Recomendado)
+
+Docker Compose gestiona automáticamente el mapeo de puertos, volúmenes de persistencia y variables de entorno:
+
 ```bash
-# Construir y levantar el contenedor en segundo plano
+# 1. Construir la imagen y levantar el contenedor en segundo plano
 docker compose up -d --build
 
-# Ver registros en tiempo real
+# 2. Monitorear los registros (logs) en tiempo real
 docker compose logs -f
 
-# Detener el contenedor
+# 3. Detener los servicios
 docker compose down
 ```
 
-**Con Docker CLI directo:**
-```bash
-# Construir la imagen
-docker build -t rag-for-mails:latest .
+---
 
-# Ejecutar el contenedor persistiendo los datos de salida
+### 3. Ejecución con Docker CLI Directo
+
+Si prefieres gestionar el contenedor directamente desde la línea de comandos:
+
+#### A. Construir la Imagen Docker
+```bash
+docker build -t ia-reportes-moldeo:latest .
+```
+
+#### B. Iniciar el Contenedor
+Monta el archivo `.env`, los tokens de Google y la carpeta de salida local para asegurar la persistencia:
+
+```bash
 docker run -d \
-  --name rag-for-mails-api \
+  --name rag-mails-app \
   -p 8000:8000 \
   --env-file .env \
-  -v $(pwd)/data/output:/app/data/output \
-  rag-for-mails:latest
+  -v "$(pwd)/token.json:/app/token.json:ro" \
+  -v "$(pwd)/credentials.json:/app/credentials.json:ro" \
+  -v "$(pwd)/data/output:/app/data/output" \
+  ia-reportes-moldeo:latest
+```
+
+#### C. Comandos Operativos de Docker
+```bash
+# Inspeccionar estado y healthcheck
+docker ps
+
+# Ver registros de ejecución
+docker logs -f rag-mails-app
+
+# Detener o reiniciar el contenedor
+docker stop rag-mails-app
+docker start rag-mails-app
+
+# Eliminar el contenedor
+docker rm -f rag-mails-app
 ```
 
 ---
 
-## 📡 Endpoints de la API
+### 4. Verificación del Servicio en Contenedor
 
-### 1. `GET /health`
-Verifica el estado del servicio, Ollama y las rutas de persistencia en el servidor.
+Una vez iniciado el contenedor, verifica que el servicio esté respondiendo correctamente:
+
 ```bash
-curl -X GET "http://localhost:8000/health"
+# Healthcheck ligero
+curl -i http://localhost:8000/health
+
+# Diagnóstico integral del sistema, estado del LLM y enlace de Google Sheets
+curl -s http://localhost:8000/api/v1/system/status
 ```
 
-### 2. `POST /api/v1/process/text`
-Envía texto no estructurado directamente. El reporte extraído actualiza de inmediato el archivo Excel (`data/output/reporte_moldeo.xlsx`) y JSON (`data/output/output.json`) **únicamente en el servidor**.
-
-**Opción A: Vía JSON**
-```bash
-curl -X POST "http://localhost:8000/api/v1/process/text" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "text": "Actualización del Turno 1:\nLa máquina M102 estuvo detenida durante 45 minutos debido a un cambio de molde. Total de piezas aprobadas: 1200. Piezas rechazadas: 15 debido a defectos estéticos.\nLíder de turno: Juan Pérez.",
-       "force_mock": true
-     }'
-```
-
-**Opción B: Vía texto plano directo**
-```bash
-curl -X POST "http://localhost:8000/api/v1/process/text?force_mock=true" \
-     -H "Content-Type: text/plain" \
-     --data-binary "Turno 2: Máquina M105: 850 piezas aprobadas, 95 rechazadas. Paro de 75 minutos. Líder: Maria Rodriguez"
-```
-
-### 3. `POST /api/v1/webhook/gmail`
-Webhook preparado para recibir notificaciones push de Google Cloud Pub/Sub o ejecutar simulaciones de prueba local directa:
-
-**Simulación local directa:**
-```bash
-curl -X POST "http://localhost:8000/api/v1/webhook/gmail" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "simulate": true,
-       "raw_text": "Turno 1: Máquina M102 estuvo detenida durante 45 min por cambio de molde. Aprobadas: 1200, rechazadas: 15. Líder: Juan Pérez",
-       "force_mock": true
-     }'
-```
-
+Documentación interactiva disponible en el navegador:
+👉 **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)  
+👉 **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ---
 
-## 🤖 Configuración Multiproveedor de Inteligencia Artificial
+## ⚙️ Configuración del Entorno (`.env`)
 
-El sistema soporta indistintamente proveedores locales y en la nube mediante variables de entorno en `.env`:
+Copia la plantilla base si configuras un nuevo entorno:
+```bash
+cp .env.example .env
+```
 
-| Proveedor | Variable `LLM_PROVIDER` | Modelo Predeterminado | Clave / URL Requerida |
+Variables esenciales:
+
+| Variable | Descripción | Valor Ejemplo |
+| :--- | :--- | :--- |
+| `LLM_PROVIDER` | Proveedor activo de IA (`gemini`, `openai`, `anthropic`, `ollama`) | `gemini` |
+| `GEMINI_API_KEY` | Clave de API de Google AI Studio | `AIzaSy...` |
+| `GEMINI_MODEL` | Modelo de lenguaje de Google Gemini | `gemini-3.6-flash` |
+| `EXPORT_TARGET` | Destino de exportación (`both`, `sheets`, `excel`) | `both` |
+| `GOOGLE_SHEET_ID` | Identificador del archivo Google Sheets maestro | `1Qzlqx7mlAFc5jPRxL3MkPrBOHlQdxy9JDf0t0TxsE3Y` |
+| `GOOGLE_DRIVE_FOLDER_ID` | Carpeta de Google Drive para los reportes | `1O2hLAX0ypoCSng1wwTivfSNzTOAczqnq` |
+| `GMAIL_AUTHORIZED_SENDER` | Remitente autorizado para procesar correos | `planta@empresa.com` |
+
+---
+
+## 💻 Ejecución Local con Python / Poetry (Sin Docker)
+
+Si deseas ejecutar o desarrollar directamente en tu entorno Python local:
+
+```bash
+# 1. Instalar dependencias con Poetry
+poetry install
+
+# 2. Iniciar el servidor FastAPI con recarga automática
+poetry run uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+---
+
+## 📡 Endpoints Principales de la API
+
+| Método | Ruta | Descripción | Payload Resumido |
 | :--- | :--- | :--- | :--- |
-| **Ollama (Local)** | `ollama` | `qwen3:8b` | `OLLAMA_BASE_URL` (defecto: `http://localhost:11434`) |
-| **OpenAI** | `openai` | `gpt-4o-mini` | `OPENAI_API_KEY` (opcional: `OPENAI_BASE_URL`) |
-| **Google Gemini** | `gemini` | `gemini-2.5-flash` | `GEMINI_API_KEY` o `GOOGLE_API_KEY` |
-| **Anthropic Claude** | `anthropic` o `claude` | `claude-3-5-sonnet-20240620` | `ANTHROPIC_API_KEY` |
+| `GET` | `/health` | Healthcheck básico para balanceadores (AWS ALB/ECS) | Ninguno |
+| `GET` | `/api/v1/system/status` | Diagnóstico de IA, Google Sheets y rutas de salida | Ninguno |
+| `POST` | `/api/v1/process/text` | Extracción de reporte desde texto no estructurado | `{"text": "Reporte de turno..."}` |
+| `GET` | `/api/v1/ai/models` | Listado de proveedores y modelos disponibles | Ninguno |
+| `POST` | `/api/v1/ai/models` | Cambio dinámico de proveedor/modelo en caliente | `{"provider": "gemini", "model": "..."}` |
+| `POST` | `/api/v1/webhook/gmail` | Recepción de notificaciones push o simulación | `{"simulate": true, "raw_text": "..."}` |
 
-### Endpoint de Gestión Dinámica de Modelos (`/api/v1/ai/models`)
-
-1. **Consultar proveedores y modelos soportados (GET)**:
-```bash
-curl -X GET "http://localhost:8000/api/v1/ai/models"
-```
-Retorna el catálogo completo con los modelos disponibles (`gemini-2.5-flash`, `gemini-1.5-pro`, `gpt-4o`, `claude-3-7-sonnet`, `qwen3:8b`, etc.), si requieren API Key y cuál está actualmente activo.
-
-2. **Cambiar el modelo activo en caliente (POST)**:
-```bash
-# Cambiar a Gemini Pro
-curl -X POST "http://localhost:8000/api/v1/ai/models" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "provider": "gemini",
-       "model": "gemini-1.5-pro",
-       "api_key": "TU_GEMINI_API_KEY"
-     }'
-```
-
-3. **Sobrescribir el proveedor por petición**:
-```json
-{
-  "text": "Actualización del Turno 1: Máquina M102...",
-  "llm_provider": "gemini",
-  "llm_model": "gemini-1.5-pro"
-}
-```
+> 📖 Para una guía completa de argumentos, modelos TypeScript y ejemplos para conectar un frontend, consulta [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md).
 
 ---
 
-## 🧪 Ejecución de Pruebas Unitarias
+## 🧪 Suite de Pruebas Automatizadas
 
-Para ejecutar la suite completa de pruebas automatizadas:
+El proyecto cuenta con una cobertura integral de pruebas unitarias y de integración que validan el pipeline, la lógica de negocio, clientes de Google Sheets/Gmail y adaptadores de IA:
+
 ```bash
+# Ejecutar todas las pruebas con pytest
 poetry run pytest tests/ -v
 ```
+
+**Resultado actual:** **47 pruebas pasando al 100%**.
+
+---
+
+## 📚 Documentación Técnica Adicional
+
+- [**Resumen de Endpoints para Frontend (docs/API_ENDPOINTS.md)**](docs/API_ENDPOINTS.md): Especificación rápida de rutas y argumentos para el desarrollo de interfaces de usuario.
+- [**Especificación del Prompt de Extracción (docs/PROMPT.md)**](docs/PROMPT.md): Instrucciones de sistema, ejemplos Few-Shot y resolución de casos límite de planta.
+- [**Plan de Migración e Integración Google Sheets (docs/PLAN_MIGRACION_GOOGLE_SHEETS.md)**](docs/PLAN_MIGRACION_GOOGLE_SHEETS.md): Detalle de la integración en la nube con Google Drive y AWS ECS.
+- [**Arquitectura de Automatización y Anti-Corrupción (docs/ARQUITECTURA_AUTOMATIZACION.md)**](docs/ARQUITECTURA_AUTOMATIZACION.md): Mecanismos de validación Pydantic V2, Dead Letter Queue y serialización.
+- [**Integración de Webhook con Gmail (docs/INTEGRACION_WEBHOOK_GMAIL.md)**](docs/INTEGRACION_WEBHOOK_GMAIL.md): Arquitectura event-driven con Google Cloud Pub/Sub.
 
 ---
 
@@ -172,33 +187,34 @@ poetry run pytest tests/ -v
 
 ```
 rag-for-mails/
-├── docs/
-│   ├── ARQUITECTURA_COMPLETA.md       # Arquitectura integral E2E (AWS, Webhook, IA, Pydantic)
-│   ├── PROMPT.md                      # Entregable 1: Prompt exacto y esquema
-│   ├── ARQUITECTURA_AUTOMATIZACION.md # Entregable 2: Arquitectura y anti-corrupción
-│   └── INTEGRACION_WEBHOOK_GMAIL.md   # Entregable 3: Integración Gmail Pub/Sub
+├── docs/                               # Documentación arquitectónica y operativa
+│   ├── API_ENDPOINTS.md                # Endpoints y payloads para frontend
+│   ├── PLAN_MIGRACION_GOOGLE_SHEETS.md # Integración con Google Sheets y Drive
+│   ├── PROMPT.md                       # Especificación del prompt de extracción
+│   ├── ARQUITECTURA_AUTOMATIZACION.md  # Arquitectura E2E y prevención de corrupción
+│   └── INTEGRACION_WEBHOOK_GMAIL.md    # Integración con Gmail y Google Cloud Pub/Sub
 ├── data/
-│   ├── sample_mails/                  # Archivos de correo de prueba (.txt)
-│   └── output/                        # Reportes generados (Excel, JSON y DLQ)
+│   ├── sample_mails/                   # Muestras de correos de prueba (.txt)
+│   └── output/                         # Archivos generados (reporte_moldeo.xlsx, output.json)
 ├── src/
-│   ├── config.py                      # Configuración central (IA, Gmail, servidor)
-│   ├── extractor.py                   # Extractor multiproveedor LLMShiftExtractor / Mock
-│   ├── exporters.py                   # Exportadores optimizados a JSON, Excel y Google Sheets
-│   ├── sheets_client.py               # Cliente oficial Google Sheets API v4 con formato corporativo
-│   ├── pipeline.py                    # Orquestador del flujo E2E
-│   ├── gmail_client.py                # Cliente oficial de Gmail API
-│   ├── schemas/                       # Esquemas Pydantic V2 (reports.py, api.py)
-│   ├── services/                      # Servicios de negocio desacoplados
-│   │   ├── ai/                        # Módulo multiproveedor de IA
-│   │   │   ├── prompts.py             # Prompts del sistema y ejemplos few-shot
-│   │   │   ├── providers.py           # Adaptadores para Ollama, OpenAI, Gemini y Claude
-│   │   │   └── service.py             # Orquestador LLMService y sanitización JSON
-│   │   ├── health_service.py          # Chequeo de estado del sistema, IA y Google Sheets
-│   │   ├── report_service.py          # Extracción y validación de texto
-│   │   └── webhook_service.py         # Manejo de Webhooks, deduplicación y watch()
-│   └── api/
-│       └── app.py                     # Servidor FastAPI y enrutamiento
-├── main.py                            # Entrypoint de arranque del servidor
-├── pyproject.toml                     # Definición de dependencias Poetry
-└── tests/                             # Suite de pruebas unitarias e integración (45 tests)
+│   ├── api/
+│   │   └── app.py                      # Aplicación FastAPI y definición de rutas
+│   ├── schemas/                        # Modelos Pydantic V2 (reports.py, api.py)
+│   ├── services/
+│   │   ├── ai/                         # Módulo de IA (prompts, providers, service)
+│   │   ├── health_service.py           # Servicio de diagnóstico del sistema
+│   │   ├── report_service.py           # Orquestación de procesamiento de reportes
+│   │   └── webhook_service.py          # Lógica de Webhook de Gmail y deduplicación
+│   ├── config.py                       # Configuración central del sistema
+│   ├── sheets_client.py                # Cliente oficial de Google Sheets API v4
+│   ├── gmail_client.py                 # Cliente de Google Gmail API
+│   ├── extractor.py                    # Extractores de datos (LLM y Mock determinista)
+│   ├── exporters.py                    # Exportación a Excel, JSON y Google Sheets
+│   └── pipeline.py                     # Pipeline integral de ingesta y validación
+├── tests/                              # Suite de pruebas automatizadas (47 tests)
+├── Dockerfile                          # Definición de construcción del contenedor Docker
+├── docker-compose.yml                  # Configuración de servicios Docker Compose
+├── pyproject.toml                      # Gestión de dependencias con Poetry
+└── README.md                           # Documentación principal del proyecto
 ```
+
