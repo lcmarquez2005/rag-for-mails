@@ -15,6 +15,11 @@ def test_health_endpoint():
     assert data == {"status": "ok"}
 
 
+def test_health_endpoint_head():
+    response = client.head("/health")
+    assert response.status_code == 200
+
+
 def test_system_status_endpoint():
     response = client.get("/api/v1/system/status")
     assert response.status_code == 200

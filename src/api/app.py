@@ -1,4 +1,6 @@
-from fastapi import FastAPI, status, HTTPException
+import logging
+from fastapi import FastAPI, status, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.schemas import (
@@ -20,6 +22,8 @@ from src.services.webhook_service import (
 )
 from src.services.ai import get_ai_configuration, update_ai_configuration
 
+logger = logging.getLogger("uvicorn.error")
+
 # ==============================================================================
 # 1. INICIALIZACIÓN DE LA APLICACIÓN FASTAPI
 # ==============================================================================
@@ -38,15 +42,28 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "message": str(exc), "path": str(request.url.path)},
+    )
+
+
 # ==============================================================================
 # 2. ENDPOINTS (DELEGADOS A LA CAPA DE SERVICIOS)
 # ==============================================================================
-@app.get(
+@app.api_route(
     "/health",
+    methods=["GET", "HEAD"],
     summary="Health check ligero para AWS ECS / ELB",
     tags=["Sistema"]
 )
-def health_check():
+async def health_check():
     """Health check ultraligero que confirma que la aplicación FastAPI está viva."""
     return {"status": "ok"}
 
