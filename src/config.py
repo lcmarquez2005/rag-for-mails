@@ -22,7 +22,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 SAMPLE_MAILS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configuración de Inteligencia Artificial (Multiproveedor)
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
+raw_provider = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
+LLM_PROVIDER = "ollama" if raw_provider in ("none", "null", "") else raw_provider
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", os.getenv("OLLAMA_TEMPERATURE", "0.0")))
 
@@ -47,6 +48,7 @@ ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
 # Configuración de Gmail API
 GMAIL_CREDENTIALS_PATH = BASE_DIR / "credentials.json"
 GMAIL_TOKEN_PATH = BASE_DIR / "token.json"
+GMAIL_TOKEN_JSON = os.getenv("GMAIL_TOKEN_JSON", "").strip()
 GMAIL_AUTHORIZED_SENDER = os.getenv("GMAIL_AUTHORIZED_SENDER", "l23200286@pachuca.tecnm.mx")
 GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify"

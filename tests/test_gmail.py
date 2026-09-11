@@ -224,3 +224,35 @@ def test_pipeline_process_gmail_message(tmp_path):
     assert rec.shift_leader == "Juan Pérez"
 
 
+def test_gmail_client_authenticate_from_token_json_env(tmp_path, monkeypatch):
+    import json
+    from unittest.mock import MagicMock, patch
+    import src.gmail_client as gc
+
+    fake_token = {
+        "token": "fake_access_token",
+        "refresh_token": "fake_refresh_token",
+        "client_id": "fake_id",
+        "client_secret": "fake_secret",
+        "scopes": ["https://www.googleapis.com/auth/gmail.modify"]
+    }
+
+    monkeypatch.setattr(gc, "GMAIL_TOKEN_JSON", json.dumps(fake_token))
+
+    with patch("google.oauth2.credentials.Credentials.from_authorized_user_info") as mock_creds_cls, \
+         patch("src.gmail_client.build") as mock_build:
+        mock_creds_instance = MagicMock()
+        mock_creds_instance.valid = True
+        mock_creds_cls.return_value = mock_creds_instance
+        mock_build.return_value = MagicMock()
+
+        # Usar un archivo de token inexistente para asegurar que lee de GMAIL_TOKEN_JSON
+        client = gc.GmailClient(token_path=tmp_path / "non_existent_token.json")
+        service = client.authenticate(run_local_server=False)
+
+        assert service is not None
+        mock_creds_cls.assert_called_once()
+        mock_build.assert_called_once_with("gmail", "v1", credentials=mock_creds_instance)
+
+
+

@@ -12,6 +12,13 @@ def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
+    assert data == {"status": "ok"}
+
+
+def test_system_status_endpoint():
+    response = client.get("/api/v1/system/status")
+    assert response.status_code == 200
+    data = response.json()
     assert data["status"] == "ok"
     assert "llm_provider" in data
     assert "llm_available" in data
@@ -278,3 +285,15 @@ def test_update_ai_models_endpoint_invalid_provider():
     data = response.json()
     assert "detail" in data
     assert "no reconocido" in data["detail"]
+
+
+def test_get_ai_models_endpoint_resilient_to_none_provider(monkeypatch):
+    import src.config as cfg
+    # Simula que AWS ECS inyectó la cadena literal "None" o ""
+    monkeypatch.setattr(cfg, "LLM_PROVIDER", "None")
+    response = client.get("/api/v1/ai/models")
+    assert response.status_code == 200
+    data = response.json()
+    assert "active_provider" in data
+    assert data["active_provider"] in ("ollama", "gemini")
+

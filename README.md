@@ -38,6 +38,38 @@ La documentación interactiva de Swagger UI estará disponible en:
 
 ---
 
+### 🐳 Despliegue con Docker (Opcional)
+
+Puedes construir y ejecutar el contenedor fácilmente con Docker o Docker Compose:
+
+**Con Docker Compose (Recomendado):**
+```bash
+# Construir y levantar el contenedor en segundo plano
+docker compose up -d --build
+
+# Ver registros en tiempo real
+docker compose logs -f
+
+# Detener el contenedor
+docker compose down
+```
+
+**Con Docker CLI directo:**
+```bash
+# Construir la imagen
+docker build -t rag-for-mails:latest .
+
+# Ejecutar el contenedor persistiendo los datos de salida
+docker run -d \
+  --name rag-for-mails-api \
+  -p 8000:8000 \
+  --env-file .env \
+  -v $(pwd)/data/output:/app/data/output \
+  rag-for-mails:latest
+```
+
+---
+
 ## 📡 Endpoints de la API
 
 ### 1. `GET /health`
@@ -139,6 +171,7 @@ poetry run pytest tests/ -v
 ```
 rag-for-mails/
 ├── docs/
+│   ├── ARQUITECTURA_COMPLETA.md       # Arquitectura integral E2E (AWS, Webhook, IA, Pydantic)
 │   ├── PROMPT.md                      # Entregable 1: Prompt exacto y esquema
 │   ├── ARQUITECTURA_AUTOMATIZACION.md # Entregable 2: Arquitectura y anti-corrupción
 │   └── INTEGRACION_WEBHOOK_GMAIL.md   # Entregable 3: Integración Gmail Pub/Sub

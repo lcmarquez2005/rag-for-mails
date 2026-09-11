@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dockerignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+tests/
+.env
+credentials.json
+token.json
+data/output/*
+!data/output/.gitkeep
+*.md

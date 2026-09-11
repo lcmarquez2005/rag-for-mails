@@ -43,12 +43,22 @@ app.add_middleware(
 # ==============================================================================
 @app.get(
     "/health",
-    response_model=HealthResponse,
-    summary="Estado del servicio y dependencias",
+    summary="Health check ligero para AWS ECS / ELB",
     tags=["Sistema"]
 )
 def health_check():
-    """Verifica el estado del servicio, Ollama y persistencia en el servidor."""
+    """Health check ultraligero que confirma que la aplicación FastAPI está viva."""
+    return {"status": "ok"}
+
+
+@app.get(
+    "/api/v1/system/status",
+    response_model=HealthResponse,
+    summary="Diagnóstico detallado del sistema y dependencias",
+    tags=["Sistema"]
+)
+def system_status_endpoint():
+    """Verifica el estado detallado del servicio, motor LLM y persistencia."""
     return check_system_health()
 
 

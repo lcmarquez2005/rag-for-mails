@@ -1,0 +1,20 @@
+services:
+  rag-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-for-mails-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Montar el directorio de salida para que los Excel y JSON persistan en el host
+      - ./data/output:/app/data/output
+      # Opcional: Montar credenciales de Gmail API si se dispone de ellas
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json:ro
+    extra_hosts:
+      # Permite acceder a servicios en el host (como Ollama en http://host.docker.internal:11434)
+      - "host.docker.internal:host-gateway"

@@ -15,6 +15,7 @@ from src.config import (
     GMAIL_CREDENTIALS_PATH,
     GMAIL_SCOPES,
     GMAIL_TOKEN_PATH,
+    GMAIL_TOKEN_JSON,
 )
 
 
@@ -79,36 +80,51 @@ class GmailClient:
     def authenticate(self, run_local_server: bool = True) -> Resource:
         """
         Autentica con la API de Gmail usando OAuth 2.0.
-        Carga el token desde token.json si existe y es válido, o genera uno nuevo
-        a partir de credentials.json abriendo el navegador.
+        Prioriza la variable de entorno GMAIL_TOKEN_JSON (AWS Secrets Manager) en memoria.
+        Si no existe, lee token.json desde disco.
+        Si ninguno existe, solo abre navegador si run_local_server es True y existe credentials.json.
         """
         if self._service:
             return self._service
 
         creds: Optional[Credentials] = None
+        import json
 
-        if self.token_path.exists():
+        # 1. Prioridad: Cargar desde variable de entorno (AWS Secrets Manager)
+        if GMAIL_TOKEN_JSON:
+            try:
+                token_data = json.loads(GMAIL_TOKEN_JSON)
+                creds = Credentials.from_authorized_user_info(token_data, self.scopes)
+            except Exception:
+                creds = None
+
+        # 2. Archivo físico token.json en disco
+        if not creds and self.token_path.exists():
             try:
                 creds = Credentials.from_authorized_user_file(str(self.token_path), self.scopes)
             except Exception:
                 creds = None
 
+        # 3. Refrescar token si está expirado pero cuenta con refresh_token
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            else:
-                if not self.credentials_path.exists():
-                    raise FileNotFoundError(
-                        f"No se encontró el archivo de credenciales en {self.credentials_path}. "
-                        "Descarga el archivo OAuth client credentials desde Google Cloud Console."
-                    )
+            elif run_local_server and self.credentials_path.exists():
                 flow = InstalledAppFlow.from_client_secrets_file(
                     str(self.credentials_path), self.scopes
                 )
                 creds = flow.run_local_server(port=0)
-
-            with open(self.token_path, "w", encoding="utf-8") as token_file:
-                token_file.write(creds.to_json())
+                try:
+                    with open(self.token_path, "w", encoding="utf-8") as token_file:
+                        token_file.write(creds.to_json())
+                except Exception:
+                    pass
+            else:
+                raise FileNotFoundError(
+                    "No se encontró un token válido para Gmail API. Proporciona la variable "
+                    "de entorno GMAIL_TOKEN_JSON (recomendado en AWS ECS / Secrets Manager) "
+                    "o coloca el archivo token.json en el directorio de la aplicación."
+                )
 
         self._service = build("gmail", "v1", credentials=creds)
         return self._service

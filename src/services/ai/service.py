@@ -107,8 +107,10 @@ class LLMService:
         api_key: Optional[str] = None
     ):
         raw_provider = provider or config.LLM_PROVIDER or "ollama"
-        norm_provider = raw_provider.strip().lower()
-        if norm_provider == "google":
+        norm_provider = (raw_provider or "ollama").strip().lower()
+        if norm_provider in ("none", "null", ""):
+            norm_provider = "ollama"
+        elif norm_provider == "google":
             norm_provider = "gemini"
         elif norm_provider == "claude":
             norm_provider = "anthropic"
@@ -119,8 +121,13 @@ class LLMService:
 
         provider_cls = PROVIDER_MAP.get(norm_provider)
         if provider_cls is None:
-            supported = ", ".join(set(PROVIDER_MAP.keys()))
-            raise ValueError(f"Proveedor '{provider}' no soportado. Opciones disponibles: {supported}")
+            if not provider or str(provider).strip().lower() in ("none", "null", ""):
+                norm_provider = "ollama"
+                self.provider_name = "ollama"
+                provider_cls = PROVIDER_MAP.get("ollama")
+            else:
+                supported = ", ".join(set(PROVIDER_MAP.keys()))
+                raise ValueError(f"Proveedor '{provider}' no soportado. Opciones disponibles: {supported}")
 
         init_kwargs = {}
         if model_name:
@@ -163,7 +170,10 @@ def get_ai_configuration():
     """Recupera la configuración actual y el catálogo de proveedores y modelos disponibles."""
     from src.schemas.api import AIConfigResponse, SupportedProviderInfo
 
-    current_service = LLMService()
+    try:
+        current_service = LLMService()
+    except Exception:
+        current_service = LLMService(provider="ollama")
     providers_dict = {}
 
     for prov_key, prov_info in SUPPORTED_PROVIDERS_CATALOG.items():
